@@ -40,8 +40,10 @@ export async function openConnection(dbName, version=1 ) {
                 const payrollStore = db.createObjectStore('payroll', { keyPath: 'payrollId' });
                 payrollStore.createIndex('userIndex', 'userId', { unique: true });
             }
-            
-            
+            if(!db.objectStoreNames.contains('credentials')){
+                const credentialStore = db.createObjectStore('credentials', {keyPath: 'email'}) ; 
+                credentialStore.createIndex('emailIndex','email') ; 
+            }
         }
         request.onsuccess = (event) => { 
             console.log(
@@ -111,20 +113,25 @@ export const updateSyncQueue = async(db, currentUserRole, idemPotencyKey, employ
 }; 
 
 export const seedDatabase = async (db) => {
-    const userTx = db.transaction(['users'], 'readwrite');
-    const payrollTx = db.transaction(['payroll'], 'readwrite');
+    // 1. Open a Transaction for ALL 3 stores
+    const transaction = db.transaction(['users', 'payroll', 'credentials'], 'readwrite');
+    
+    const userStore = transaction.objectStore('users');
+    const payrollStore = transaction.objectStore('payroll');
+    const credStore = transaction.objectStore('credentials');
 
-    const userStore = userTx.objectStore('users');
-    const payrollStore = payrollTx.objectStore('payroll');
-
+    // 2. Check if DB is already seeded (Check Users)
     const countRequest = userStore.count();
     
     countRequest.onsuccess = () => {
         if (countRequest.result === 0) {
-            console.log("Seeding Split Database...");
+            console.log("🌱 Seeding Database with 3 Stores...");
+
+            // ==========================================
+            // USER 1: SARAH (HR MANAGER)
+            // ==========================================
             
-            // --- EMPLOYEE 1: SARAH ---
-            // 1. The User Profile
+            // Store A: Public Profile (Denormalized for Directory)
             userStore.add({
                 id: "EMP_001",
                 role: "hr_manager",
@@ -135,46 +142,69 @@ export const seedDatabase = async (db) => {
                     firstName: "Sarah",
                     lastName: "Connor",
                     contactNumber: "555-0199",
-                    // Added Identity Scans for Requirement 10
-                    id_scans: [{ type: "passport", blob: "binary_placeholder" }] 
+                    address: { city: "Los Angeles" },
+                    id_scans: [] // Req 10 placeholder
                 },
-                // NOTE: No financial data here anymore!
                 attendance: { status: "active", logs: [] }
             });
 
-            // 2. The Payroll Record (Linked by userId)
+            // Store B: Private Payroll (Normalized)
             payrollStore.add({
                 payrollId: "PAY_001",
-                userId: "EMP_001", // <--- THE LINK
-                baseSalary: 85000,
+                userId: "EMP_001", // Linked to User
+                baseSalary: 95000,
                 currency: "USD",
-                taxBracket: "T2",
-                bankDetails: { bankName: "Chase", accountNumber: "1234" },
-                payrollHistory: [] // History lives here now
+                taxBracket: "T3",
+                bankDetails: { bankName: "Chase", accountNumber: "****1234" },
+                payrollHistory: [] 
             });
 
-            // --- EMPLOYEE 2: JOHN ---
+            // Store C: Login Credentials (Security Vault)
+            credStore.add({
+                email: "sarah@nexushr.com", // PRIMARY KEY (Matches User Email)
+                password: "admin",          // The password you type to login
+                userId: "EMP_001"           // Link back to profile
+            });
+
+            // ==========================================
+            // USER 2: JOHN (REGULAR EMPLOYEE)
+            // ==========================================
+
             userStore.add({
                 id: "EMP_002",
                 role: "employee",
                 department: "Tech",
                 email: "john@nexushr.com",
                 isDeleted: false,
-                identity: { firstName: "John", lastName: "Doe" },
+                identity: {
+                    firstName: "John",
+                    lastName: "Doe",
+                    contactNumber: "555-0200",
+                    address: { city: "New York" },
+                    id_scans: []
+                },
                 attendance: { status: "inactive", logs: [] }
             });
 
             payrollStore.add({
                 payrollId: "PAY_002",
                 userId: "EMP_002",
-                baseSalary: 120000,
+                baseSalary: 70000,
                 currency: "USD",
                 taxBracket: "T1",
-                bankDetails: { bankName: "BoA", accountNumber: "5678" },
+                bankDetails: { bankName: "BoA", accountNumber: "****5678" },
                 payrollHistory: []
             });
 
-            console.log("Database Seeded with Normalized Structure!");
+            credStore.add({
+                email: "john@nexushr.com",
+                password: "user123",
+                userId: "EMP_002"
+            });
+
+            console.log("Database Seeded Successfully!");
+        } else {
+            console.log("Database already exists. Skipping seed.");
         }
     };
 };
