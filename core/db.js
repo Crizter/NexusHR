@@ -1,9 +1,9 @@
 import { checkPermission } from "../auth/rbac.js";
 
 // opening the database 
-export const connectToDb = async  () => { 
+export const connectToDb = async  (version) => { 
     
-    return await openConnection("NEXUSHR_VAULT") ;        
+    return await openConnection("NEXUSHR_VAULT", version) ;        
 } ; 
 
 
@@ -18,14 +18,39 @@ export async function openConnection(dbName, version=1 ) {
             if(!db.objectStoreNames.contains("users")){
                 const userStore = db.createObjectStore("users",{keyPath: "id"}) ; 
                 // create the index roleIndex with keyproperty
-                userStore.createIndex("roleIndex", "role", {unique: false}) ;                
+                userStore.createIndex("roleIndex", "role", {unique: false}) ;
+                userStore.createIndex("emailIndex", "email", {unique: true}) ;      
+                userStore.createIndex("deptIndex", "department", {unique: false}) ;      
+                
             }
+            // sync queue for offline management
             if(!db.objectStoreNames.contains("sync_queue")){
-                db.createObjectStore("syncQueue", {keyPath: 'idemPotencyKey'}) ; 
+                db.createObjectStore("sync_queue", {keyPath: 'idemPotencyKey'}) ; 
             }
-            
+            if(!db.objectStoreNames.contains("leave_requests")){
+                const leaveStore = db.createObjectStore("leave_requests", {keyPath: 'requestId'}) ; 
+                leaveStore.createIndex("statusIndex", "status", {unique:false}) ; 
+                leaveStore.createIndex("employeeIndex", "employeeId", {unique:false});                             
+            }
+            if(!db.objectStoreNames.contains("messages")){
+                const messageStore = db.createObjectStore("messages",{keyPath: 'messageId'} ) ; 
+                messageStore.createIndex('conversationIndex', 'conversationId', {unique: false }) ; 
+            }
+            if (!db.objectStoreNames.contains('payroll')) {
+                const payrollStore = db.createObjectStore('payroll', { keyPath: 'payrollId' });
+                payrollStore.createIndex('userIndex', 'userId', { unique: true });
+            }
+            if(!db.objectStoreNames.contains('credentials')){
+                const credentialStore = db.createObjectStore('credentials', {keyPath: 'email'}) ; 
+                credentialStore.createIndex('emailIndex','email') ; 
+            }
         }
-        request.onsuccess = () => resolve(request.result) ; 
+        request.onsuccess = (event) => { 
+            console.log(
+                'Database initialized successfully.'
+            ) ; 
+            resolve(event.target.result) ; 
+        } ; 
         request.onerror = () => reject(request.error) ; 
     }) ; 
 };
@@ -86,3 +111,100 @@ export const updateSyncQueue = async(db, currentUserRole, idemPotencyKey, employ
         }
     }); 
 }; 
+
+export const seedDatabase = async (db) => {
+    // 1. Open a Transaction for ALL 3 stores
+    const transaction = db.transaction(['users', 'payroll', 'credentials'], 'readwrite');
+    
+    const userStore = transaction.objectStore('users');
+    const payrollStore = transaction.objectStore('payroll');
+    const credStore = transaction.objectStore('credentials');
+
+    // 2. Check if DB is already seeded (Check Users)
+    const countRequest = userStore.count();
+    
+    countRequest.onsuccess = () => {
+        if (countRequest.result === 0) {
+            console.log("🌱 Seeding Database with 3 Stores...");
+
+            // ==========================================
+            // USER 1: SARAH (HR MANAGER)
+            // ==========================================
+            
+            // Store A: Public Profile (Denormalized for Directory)
+            userStore.add({
+                id: "EMP_001",
+                role: "hr_manager",
+                department: "Operations",
+                email: "sarah@nexushr.com",
+                isDeleted: false,
+                identity: {
+                    firstName: "Sarah",
+                    lastName: "Connor",
+                    contactNumber: "555-0199",
+                    address: { city: "Los Angeles" },
+                    id_scans: [] // Req 10 placeholder
+                },
+                attendance: { status: "active", logs: [] }
+            });
+
+            // Store B: Private Payroll (Normalized)
+            payrollStore.add({
+                payrollId: "PAY_001",
+                userId: "EMP_001", // Linked to User
+                baseSalary: 95000,
+                currency: "USD",
+                taxBracket: "T3",
+                bankDetails: { bankName: "Chase", accountNumber: "****1234" },
+                payrollHistory: [] 
+            });
+
+            // Store C: Login Credentials (Security Vault)
+            credStore.add({
+                email: "sarah@nexushr.com", // PRIMARY KEY (Matches User Email)
+                password: "admin",          // The password you type to login
+                userId: "EMP_001"           // Link back to profile
+            });
+
+            // ==========================================
+            // USER 2: JOHN (REGULAR EMPLOYEE)
+            // ==========================================
+
+            userStore.add({
+                id: "EMP_002",
+                role: "employee",
+                department: "Tech",
+                email: "john@nexushr.com",
+                isDeleted: false,
+                identity: {
+                    firstName: "John",
+                    lastName: "Doe",
+                    contactNumber: "555-0200",
+                    address: { city: "New York" },
+                    id_scans: []
+                },
+                attendance: { status: "inactive", logs: [] }
+            });
+
+            payrollStore.add({
+                payrollId: "PAY_002",
+                userId: "EMP_002",
+                baseSalary: 70000,
+                currency: "USD",
+                taxBracket: "T1",
+                bankDetails: { bankName: "BoA", accountNumber: "****5678" },
+                payrollHistory: []
+            });
+
+            credStore.add({
+                email: "john@nexushr.com",
+                password: "user123",
+                userId: "EMP_002"
+            });
+
+            console.log("Database Seeded Successfully!");
+        } else {
+            console.log("Database already exists. Skipping seed.");
+        }
+    };
+};
