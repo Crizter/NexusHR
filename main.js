@@ -1,7 +1,10 @@
 
 import { connectToDb, seedDatabase } from "./core/db.js";
 import { syncManager } from "./core/sync.js";
+import { checkLoggedin } from "./auth/auth-service.js";
 
+const activeUser = sessionStorage.getItem('userId') ; 
+checkLoggedin(activeUser) ; 
 
 
 
@@ -17,7 +20,7 @@ document.addEventListener('DOMContentLoaded',async (event) => {
         console.error("Failed to start app:", error);
     }
 
-})
+}) ;
 
 // fetch the users from users ( indexdb) 
 const loadDirectory = (db) => { 
