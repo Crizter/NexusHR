@@ -109,6 +109,21 @@ export const updateEmployee = async (db, currentUserRole, employeeData) => {
     request.onerror = () => reject("Update failed.");
   });
 };
+
+// get all employees 
+export const getAllEmployees = async (db) => { 
+    return new Promise((resolve, reject) => { 
+        const transaction = db.transaction(["users"], 'readonly') ; 
+        const objectStore = transaction.objectStore('users') ; 
+        const objectStoreRequest = objectStore.getAll() ;  // get all the users 
+        objectStoreRequest.onsuccess = (e) => { 
+                resolve(objectStoreRequest.result) ; 
+        }
+        objectStoreRequest.onerror = () => { 
+            reject(objectStoreRequest.error) ; 
+        } ;
+    }) ; 
+} ; 
 // clear the store
 // only for superadmin role
 export const clearStore = async (db, currentUserRole, employeeId) => {
