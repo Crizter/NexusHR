@@ -1,5 +1,5 @@
 import { checkPermission } from "../auth/rbac.js";
-
+import { PERMISSIONS } from "../config.js";
 // opening the database
 export const connectToDb = async (version) => {
   return await openConnection("NEXUSHR_VAULT", version);
@@ -21,8 +21,12 @@ export async function openConnection(dbName, version = 1) {
         userStore.createIndex("deptIndex", "department", { unique: false });
       }
       // sync queue for offline management
-      if (!db.objectStoreNames.contains("sync_queue")) {
-        db.createObjectStore("sync_queue", { keyPath: "idemPotencyKey" });
+      if (!db.objectStoreNames.contains("syncQueue")) {
+        db.createObjectStore("syncQueue", { keyPath: "idemPotencyKey" });
+      }
+      // department  
+      if(!db.objectStoreNames.contains("department")){ 
+        db.createObjectStore("department", {keyPath: "deptId"}) ; 
       }
 
       // leave_request store for employee leaves
@@ -97,7 +101,7 @@ export async function openConnection(dbName, version = 1) {
 // transactions
 // send employee data and edit it
 export const updateEmployee = async (db, currentUserRole, employeeData) => {
-  if (!checkPermission(currentUserRole, "edit_record")) {
+  if (!checkPermission(currentUserRole, PERMISSIONS.EDIT_RECORD )) {
     throw new Error("Access Denied: You do not have permission to edit.");
   }
   // open transaction
@@ -124,10 +128,25 @@ export const getAllEmployees = async (db) => {
         } ;
     }) ; 
 } ; 
+
+// get employee by id 
+export const getEmployeeById = async(db,id) => { 
+    return new Promise((resolve, reject) => { 
+        const transaction = db.transaction(["users"], 'readonly') ; 
+        const objectStore = transaction.objectStore('users') ; 
+        const objectStoreRequest = objectStore.get(id) ; 
+        objectStoreRequest.onsuccess = () => { 
+            resolve(objectStoreRequest.result) ; 
+        }
+        objectStoreRequest.onerror = () => { 
+            reject(objectStoreRequest.error) ; 
+        }
+    });
+}
 // clear the store
 // only for superadmin role
-export const clearStore = async (db, currentUserRole, employeeId) => {
-  if (!checkPermission(currentUserRole, "delete_record")) {
+export const clearStore = async (db, currentUserRole) => {
+  if (!checkPermission(currentUserRole, PERMISSIONS.CLEAR_DIRECTORY)) {
     throw new Error("Access Denied: You do not have permission to delete.");
   }
   const userStore = db.transaction(["users"], "readwrite").objectStore("users");
@@ -174,101 +193,106 @@ export const updateSyncQueue = async (
 };
 
 export const seedDatabase = async (db) => {
-  // 1. Open a Transaction for ALL 3 stores
-  const transaction = db.transaction(
-    ["users", "payroll", "credentials"],
-    "readwrite",
-  );
+    return new Promise((resolve, reject) => {
+        // We run two transactions: one for Users, one for Departments
+        // This ensures they don't block each other
+        
+        // --- 1. SEED DEPARTMENTS ---
+        const deptTx = db.transaction(['department'], 'readwrite');
+        const deptStore = deptTx.objectStore('department');
+        
+        const deptCountReq = deptStore.count();
 
-  const userStore = transaction.objectStore("users");
-  const payrollStore = transaction.objectStore("payroll");
-  const credStore = transaction.objectStore("credentials");
+        deptCountReq.onsuccess = () => {
+            if (deptCountReq.result === 0) {
+                console.log(" Seeding Departments...");
+                
+                const departments = [
+                    { deptId: "DEP-001", deptName: "Sales" },
+                    { deptId: "DEP-002", deptName: "Tech" },
+                    { deptId: "DEP-003", deptName: "Operations" },
+                    { deptId: "DEP-004", deptName: "Support" }
+                ];
 
-  // 2. Check if DB is already seeded (Check Users)
-  const countRequest = userStore.count();
+                departments.forEach(dept => {
+                    deptStore.add(dept);
+                });
+                console.log(" Departments seeded successfully.");
+            }
+        };
 
-  countRequest.onsuccess = () => {
-    if (countRequest.result === 0) {
-      console.log("🌱 Seeding Database with 3 Stores...");
+        // --- 2. SEED USERS (Your existing logic) ---
+        // We verify users exist, if not we add them using the NEW schema structure
+        const userTx = db.transaction(['users'], 'readwrite');
+        const userStore = userTx.objectStore('users');
+        const userCountReq = userStore.count();
 
-      // ==========================================
-      // USER 1: SARAH (HR MANAGER)
-      // ==========================================
+        userCountReq.onsuccess = () => {
+            if (userCountReq.result === 0) {
+                console.log("Seeding Users...");
+                
+                // Example Seed User matching your NEW Complex Schema
+                const seedUsers = [
+                    {
+                        id: crypto.randomUUID(),
+                        identity: {
+                            firstName: "Sarah",
+                            lastName: "Connor",
+                            contactNumber: "555-0199",
+                            address: { city: "Los Angeles" }
+                        },
+                        role: "hr_manager",
+                        department: { deptId: "DEP-003", deptName: "Operations" }, // Matches Dept Store
+                        email: "sarah@nexushr.com",
+                        isDeleted: false,
+                        attendance: { 
+                            status: "active", 
+                            lastLogin: Date.now(), 
+                            logs: [] 
+                        },
+                        skills: ["Management", "Recruiting"],
+                        financial: {
+                            baseSalary: 85000,
+                            currency: "USD",
+                            taxBrackets: "tier_2",
+                            bankDetail: { bankName: "Chase", accountNumber: "****1234" }
+                        }
+                    },
+                    // Add a Tech Employee
+                    {
+                        id: crypto.randomUUID(),
+                        identity: {
+                            firstName: "John",
+                            lastName: "Doe",
+                            contactNumber: "555-0200",
+                            address: { city: "New York" }
+                        },
+                        role: "employee",
+                        department: { deptId: "DEP-002", deptName: "Tech" },
+                        email: "john@nexushr.com",
+                        isDeleted: false,
+                        attendance: { status: "active", lastLogin: Date.now(), logs: [] },
+                        skills: ["JavaScript", "React", "Node.js"],
+                        financial: {
+                            baseSalary: 65000,
+                            currency: "USD",
+                            taxBrackets: "tier_1",
+                            bankDetail: { bankName: "Citi", accountNumber: "****5678" }
+                        }
+                    }
+                ];
 
-      // Store A: Public Profile (Denormalized for Directory)
-      userStore.add({
-        id: "EMP_001",
-        role: "hr_manager",
-        department: "Operations",
-        email: "sarah@nexushr.com",
-        isDeleted: false,
-        identity: {
-          firstName: "Sarah",
-          lastName: "Connor",
-          contactNumber: "555-0199",
-          address: { city: "Los Angeles" },
-          id_scans: [], // Req 10 placeholder
-        },
-        attendance: { status: "active", logs: [] },
-      });
-
-      // Store B: Private Payroll (Normalized)
-      payrollStore.add({
-        payrollId: "PAY_001",
-        userId: "EMP_001", // Linked to User
-        baseSalary: 95000,
-        currency: "USD",
-        taxBracket: "T3",
-        bankDetails: { bankName: "Chase", accountNumber: "****1234" },
-        payrollHistory: [],
-      });
-
-      // Store C: Login Credentials (Security Vault)
-      credStore.add({
-        email: "sarah@nexushr.com", // PRIMARY KEY (Matches User Email)
-        password: "admin", // The password you type to login
-        userId: "EMP_001", // Link back to profile
-      });
-
-      // ==========================================
-      // USER 2: JOHN (REGULAR EMPLOYEE)
-      // ==========================================
-
-      userStore.add({
-        id: "EMP_002",
-        role: "employee",
-        department: "Tech",
-        email: "john@nexushr.com",
-        isDeleted: false,
-        identity: {
-          firstName: "John",
-          lastName: "Doe",
-          contactNumber: "555-0200",
-          address: { city: "New York" },
-          id_scans: [],
-        },
-        attendance: { status: "inactive", logs: [] },
-      });
-
-      payrollStore.add({
-        payrollId: "PAY_002",
-        userId: "EMP_002",
-        baseSalary: 70000,
-        currency: "USD",
-        taxBracket: "T1",
-        bankDetails: { bankName: "BoA", accountNumber: "****5678" },
-        payrollHistory: [],
-      });
-
-      credStore.add({
-        email: "john@nexushr.com",
-        password: "user123",
-        userId: "EMP_002",
-      });
-
-      console.log("Database Seeded Successfully!");
-    } else {
-      console.log("Database already exists. Skipping seed.");
-    }
-  };
+                seedUsers.forEach(user => {
+                    userStore.add(user);
+                });
+                console.log("Users seeded successfully.");
+            }
+            
+            // Resolve the Promise when transactions are done
+            userTx.oncomplete = () => resolve();
+        };
+        
+        userTx.onerror = (e) => reject(e);
+    });
 };
+

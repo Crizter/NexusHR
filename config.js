@@ -1,9 +1,9 @@
 `use strict`
 // hr portal roles for role based access control 
 export  const ROLES = {
-    SUPER_ADMIN: "superadmin", 
-    HR_MANAGER: "hr_manager", 
-    EMPLOYEE : 'employee', 
+    super_admin: "super_admin", 
+    hr_manager: "hr_manager", 
+    employee : 'employee', 
 } ; 
 
 
@@ -22,8 +22,8 @@ export const PERMISSIONS = {
 // export the perms of each roles 
 
 export const ROLE_PERMISSIONS = {
-    [ROLES.SUPER_ADMIN] : Object.values(PERMISSIONS), 
-    [ROLES.HR_MANAGER] : [ PERMISSIONS.VIEW_RECORD, PERMISSIONS.DELETE_RECORD, PERMISSIONS.EDIT_RECORD, PERMISSIONS.PAYROLL_RECORD, PERMISSIONS.LEAVE_APPROVE] , 
-    [ROLES.EMPLOYEE] : [PERMISSIONS.VIEW_RECORD],
+    [ROLES.super_admin] : Object.values(PERMISSIONS), 
+    [ROLES.hr_manager] : [ PERMISSIONS.VIEW_RECORD, PERMISSIONS.DELETE_RECORD, PERMISSIONS.EDIT_RECORD, PERMISSIONS.PAYROLL_RECORD, PERMISSIONS.LEAVE_APPROVE] , 
+    [ROLES.employee] : [PERMISSIONS.VIEW_RECORD],
 }
 
