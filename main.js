@@ -3,7 +3,7 @@ import { connectToDb, seedDatabase, getAllEmployees, updateEmployee, getEmployee
 import { handleEmployeeUpdate, syncManager } from "./core/sync.js";
 import { checkLoggedin } from "./auth/auth-service.js";
 import { generateUUID } from "./utils/crypto.js";
-
+import { initSidebar } from "./components/sidebar.js";
 
 
 const activeUser = sessionStorage.getItem('userId') ; 
@@ -27,6 +27,7 @@ const DEPARTMENTS = {
 document.addEventListener('DOMContentLoaded',async (event) => { 
     console.log('Dom content loaded') ; 
     try {
+        initSidebar() ; 
         db = await connectToDb(2) ; 
         await seedDatabase(db) ; 
         syncManager(db) ; 
