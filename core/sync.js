@@ -34,7 +34,16 @@ export const syncManager = (db) => {
                     const currentUserRole = sessionStorage.getItem('role');
                     
                     
-                    await updateEmployee(db, currentUserRole, task); 
+                      // Handle different operation types
+                    if (task.operationType === 'UPDATE_EMPLOYEE') {
+                        await updateEmployee(db, currentUserRole, task.data);
+                    } else if (task.operationType === 'ADD_EMPLOYEE_WITH_CREDENTIALS') {
+                        // Add employee first
+                        await updateEmployee(db, currentUserRole, task.data.employee);
+                        // Then add credentials
+                        await addUserCredentials(db, task.data.credentials, currentUserRole);
+                    }
+
                     
                     // Delete from Queue
                     const deleteTx = db.transaction(['syncQueue'], 'readwrite');
@@ -70,13 +79,13 @@ export const syncManager = (db) => {
         flushQueue();
     }
 };
-// handler for sync queue - once the user is offline 
-const saveSyncQueue = async (db, employeeData, currentUserRole, uuid) => { 
-    if(!db || !employeeData || !currentUserRole || !uuid){
-        throw new Error('Missing fields') ; 
-    }
-    await updateSyncQueue(db, currentUserRole,uuid , employeeData) ; 
-}
+// // handler for sync queue - once the user is offline 
+// const saveSyncQueue = async (db, employeeData, currentUserRole, uuid) => { 
+//     if(!db || !employeeData || !currentUserRole || !uuid){
+//         throw new Error('Missing fields') ; 
+//     }
+//     await updateSyncQueue(db, currentUserRole,uuid , employeeData) ; 
+// }
 
 // function to be called when save button is called 
 // checks if the user is online or offline and basis on that it will udpate 
@@ -88,8 +97,31 @@ export const handleEmployeeUpdate = async (db, employeeData, currentUserRole) =>
     } else { 
         console.log('Offline: Queueing for later...') ; 
         const uuid = generateUUID() ; 
-        await saveSyncQueue(db, employeeData,currentUserRole,uuid) ; 
+        await updateSyncQueue(db, currentUserRole, uuid, 'UPDATE_EMPLOYEE', employeeData); 
         alert('Offline, changes saved to sync queue') ; 
         return "Queued for sync" ; 
     }
 }
+
+export const handleEmployeeCreation = async (db, employeeData, credentialsData, currentUserRole) => {
+    if (isOnline) {
+        console.log('Online, creating employee and credentials directly');
+        
+        await updateEmployee(db, currentUserRole, employeeData);
+        await addUserCredentials(db, credentialsData, currentUserRole);
+        
+        return "Employee and credentials created successfully";
+    } else {
+        console.log('Offline: Queueing employee creation for later...');
+        const uuid = generateUUID();
+        
+        const combinedData = {
+            employee: employeeData,
+            credentials: credentialsData
+        };
+        
+        await updateSyncQueue(db, currentUserRole, uuid, 'ADD_EMPLOYEE_WITH_CREDENTIALS', combinedData);
+        alert('Offline, new employee saved to sync queue');
+        return "Queued for sync";
+    }
+};
