@@ -1,5 +1,5 @@
 
-import { connectToDb, seedDatabase, getAllEmployees, updateEmployee, getEmployeeById, updateSyncQueue } from "./core/db.js";
+import { connectToDb, seedDatabase, getAllEmployees, updateEmployee, getEmployeeById, updateSyncQueue , addUserCredentials} from "./core/db.js";
 import { handleEmployeeUpdate, syncManager } from "./core/sync.js";
 import { checkLoggedin } from "./auth/auth-service.js";
 import { generateUUID } from "./utils/crypto.js";
@@ -148,7 +148,7 @@ document.getElementById('edit-form').addEventListener('submit', async (e) => {
     
     const originalUser = await getEmployeeById(db, id);
     // get the dept 
-    const selectedDeptName = document.getElementById('edit-dept').value = user.department?.deptName  || 'N/A' ; 
+    const selectedDeptName = document.getElementById('edit-dept').value  ; 
     const departmentObj = DEPARTMENTS[selectedDeptName] ; 
 
     const updatedUser = {
@@ -184,12 +184,18 @@ document.getElementById('add-form').addEventListener('submit', async(e) => {
     const employeeId =  generateUUID() ; 
     const selectedDeptName = document.getElementById('add-dept').value ; 
     const deptObj = DEPARTMENTS[selectedDeptName]; 
-
+    const userPassword = document.getElementById('add-password').value ; 
+    const email = document.getElementById('add-email').value ; 
+        const newCredentials = { 
+            email : email,
+            password: userPassword, 
+            userId: employeeId
+        }
        const newEmployee = {
         id: employeeId,
         role: document.getElementById('add-role').value,
         department: deptObj, // Use department object
-        email: document.getElementById('add-email').value,
+        email: email,
         isDeleted: false,
         identity: {
             firstName: document.getElementById('add-firstname').value,
@@ -207,6 +213,7 @@ document.getElementById('add-form').addEventListener('submit', async(e) => {
     try {
         await handleEmployeeUpdate(db,newEmployee,currentUserRole) ; 
         console.log('Employee added successfully') ; 
+        await addUserCredentials(db,newCredentials,currentUserRole) ; 
 
         // clear form 
          document.getElementById('add-form').reset();

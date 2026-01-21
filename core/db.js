@@ -1,3 +1,4 @@
+
 import { checkPermission } from "../auth/rbac.js";
 import { PERMISSIONS } from "../config.js";
 // opening the database
@@ -24,9 +25,9 @@ export async function openConnection(dbName, version = 1) {
       if (!db.objectStoreNames.contains("syncQueue")) {
         db.createObjectStore("syncQueue", { keyPath: "idemPotencyKey" });
       }
-      // department  
-      if(!db.objectStoreNames.contains("department")){ 
-        db.createObjectStore("department", {keyPath: "deptId"}) ; 
+      // department
+      if (!db.objectStoreNames.contains("department")) {
+        db.createObjectStore("department", { keyPath: "deptId" });
       }
 
       // leave_request store for employee leaves
@@ -101,7 +102,7 @@ export async function openConnection(dbName, version = 1) {
 // transactions
 // send employee data and edit it
 export const updateEmployee = async (db, currentUserRole, employeeData) => {
-  if (!checkPermission(currentUserRole, PERMISSIONS.EDIT_RECORD )) {
+  if (!checkPermission(currentUserRole, PERMISSIONS.EDIT_RECORD)) {
     throw new Error("Access Denied: You do not have permission to edit.");
   }
   // open transaction
@@ -114,35 +115,54 @@ export const updateEmployee = async (db, currentUserRole, employeeData) => {
   });
 };
 
-// get all employees 
-export const getAllEmployees = async (db) => { 
-    return new Promise((resolve, reject) => { 
-        const transaction = db.transaction(["users"], 'readonly') ; 
-        const objectStore = transaction.objectStore('users') ; 
-        const objectStoreRequest = objectStore.getAll() ;  // get all the users 
-        objectStoreRequest.onsuccess = (e) => { 
-                resolve(objectStoreRequest.result) ; 
-        }
-        objectStoreRequest.onerror = () => { 
-            reject(objectStoreRequest.error) ; 
-        } ;
-    }) ; 
-} ; 
+// get all employees
+export const getAllEmployees = async (db) => {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(["users"], "readonly");
+    const objectStore = transaction.objectStore("users");
+    const objectStoreRequest = objectStore.getAll(); // get all the users
+    objectStoreRequest.onsuccess = (e) => {
+      resolve(objectStoreRequest.result);
+    };
+    objectStoreRequest.onerror = () => {
+      reject(objectStoreRequest.error);
+    };
+  });
+};
 
-// get employee by id 
-export const getEmployeeById = async(db,id) => { 
-    return new Promise((resolve, reject) => { 
-        const transaction = db.transaction(["users"], 'readonly') ; 
-        const objectStore = transaction.objectStore('users') ; 
-        const objectStoreRequest = objectStore.get(id) ; 
-        objectStoreRequest.onsuccess = () => { 
-            resolve(objectStoreRequest.result) ; 
-        }
-        objectStoreRequest.onerror = () => { 
-            reject(objectStoreRequest.error) ; 
-        }
-    });
-}
+// get employee by id
+export const getEmployeeById = async (db, id) => {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(["users"], "readonly");
+    const objectStore = transaction.objectStore("users");
+    const objectStoreRequest = objectStore.get(id);
+    objectStoreRequest.onsuccess = () => {
+      resolve(objectStoreRequest.result);
+    };
+    objectStoreRequest.onerror = () => {
+      reject(objectStoreRequest.error);
+    };
+  });
+};
+export const addUserCredentials = async (db, credentialsData, currentUserRole) => {
+  if (!checkPermission(currentUserRole, PERMISSIONS.EDIT_RECORD)) {
+    throw new Error("Access Denied: You do not have permission to add credentials.");
+  }
+  
+  const credStore = db.transaction(["credentials"], "readwrite").objectStore("credentials");
+  
+  return new Promise((resolve, reject) => {
+    const request = credStore.add(credentialsData);
+    request.onsuccess = () => resolve("Credentials added successfully");
+    request.onerror = (event) => {
+      if (event.target.error.name === "ConstraintError") {
+        reject(new Error("Email already exists"));
+      } else {
+        reject(new Error("Failed to add credentials"));
+      }
+    };
+  });
+};
 // clear the store
 // only for superadmin role
 export const clearStore = async (db, currentUserRole) => {
@@ -163,7 +183,8 @@ export const updateSyncQueue = async (
   db,
   currentUserRole,
   idemPotencyKey,
-  employeeData,
+  operationType, 
+  data,
 ) => {
   // check for the permission if its allowed to update
   if (!checkPermission(currentUserRole, "edit_record")) {
@@ -176,7 +197,9 @@ export const updateSyncQueue = async (
   // action
   return new Promise((resolve, reject) => {
     const recordToSave = {
-      ...employeeData,
+      operationType: operationType, 
+      data: data, 
+      timeStamp:Date.now(),
       idemPotencyKey: idemPotencyKey,
     };
     // if it already exists then it won't update
@@ -193,106 +216,133 @@ export const updateSyncQueue = async (
 };
 
 export const seedDatabase = async (db) => {
-    return new Promise((resolve, reject) => {
-        // We run two transactions: one for Users, one for Departments
-        // This ensures they don't block each other
-        
-        // --- 1. SEED DEPARTMENTS ---
-        const deptTx = db.transaction(['department'], 'readwrite');
-        const deptStore = deptTx.objectStore('department');
-        
-        const deptCountReq = deptStore.count();
+  return new Promise((resolve, reject) => {
+    // We run two transactions: one for Users, one for Departments
+    // This ensures they don't block each other
 
-        deptCountReq.onsuccess = () => {
-            if (deptCountReq.result === 0) {
-                console.log(" Seeding Departments...");
-                
-                const departments = [
-                    { deptId: "DEP-001", deptName: "Sales" },
-                    { deptId: "DEP-002", deptName: "Tech" },
-                    { deptId: "DEP-003", deptName: "Operations" },
-                    { deptId: "DEP-004", deptName: "Support" }
-                ];
+    // --- 1. SEED DEPARTMENTS ---
+    const deptTx = db.transaction(["department"], "readwrite");
+    const deptStore = deptTx.objectStore("department");
 
-                departments.forEach(dept => {
-                    deptStore.add(dept);
-                });
-                console.log(" Departments seeded successfully.");
-            }
-        };
+    const deptCountReq = deptStore.count();
 
-        // --- 2. SEED USERS (Your existing logic) ---
-        // We verify users exist, if not we add them using the NEW schema structure
-        const userTx = db.transaction(['users'], 'readwrite');
-        const userStore = userTx.objectStore('users');
-        const userCountReq = userStore.count();
+    deptCountReq.onsuccess = () => {
+      if (deptCountReq.result === 0) {
+        console.log(" Seeding Departments...");
 
-        userCountReq.onsuccess = () => {
-            if (userCountReq.result === 0) {
-                console.log("Seeding Users...");
-                
-                // Example Seed User matching your NEW Complex Schema
-                const seedUsers = [
-                    {
-                        id: crypto.randomUUID(),
-                        identity: {
-                            firstName: "Sarah",
-                            lastName: "Connor",
-                            contactNumber: "555-0199",
-                            address: { city: "Los Angeles" }
-                        },
-                        role: "hr_manager",
-                        department: { deptId: "DEP-003", deptName: "Operations" }, // Matches Dept Store
-                        email: "sarah@nexushr.com",
-                        isDeleted: false,
-                        attendance: { 
-                            status: "active", 
-                            lastLogin: Date.now(), 
-                            logs: [] 
-                        },
-                        skills: ["Management", "Recruiting"],
-                        financial: {
-                            baseSalary: 85000,
-                            currency: "USD",
-                            taxBrackets: "tier_2",
-                            bankDetail: { bankName: "Chase", accountNumber: "****1234" }
-                        }
-                    },
-                    // Add a Tech Employee
-                    {
-                        id: crypto.randomUUID(),
-                        identity: {
-                            firstName: "John",
-                            lastName: "Doe",
-                            contactNumber: "555-0200",
-                            address: { city: "New York" }
-                        },
-                        role: "employee",
-                        department: { deptId: "DEP-002", deptName: "Tech" },
-                        email: "john@nexushr.com",
-                        isDeleted: false,
-                        attendance: { status: "active", lastLogin: Date.now(), logs: [] },
-                        skills: ["JavaScript", "React", "Node.js"],
-                        financial: {
-                            baseSalary: 65000,
-                            currency: "USD",
-                            taxBrackets: "tier_1",
-                            bankDetail: { bankName: "Citi", accountNumber: "****5678" }
-                        }
-                    }
-                ];
+        const departments = [
+          { deptId: "DEP-001", deptName: "Sales" },
+          { deptId: "DEP-002", deptName: "Tech" },
+          { deptId: "DEP-003", deptName: "Operations" },
+          { deptId: "DEP-004", deptName: "Support" },
+        ];
 
-                seedUsers.forEach(user => {
-                    userStore.add(user);
-                });
-                console.log("Users seeded successfully.");
-            }
-            
-            // Resolve the Promise when transactions are done
-            userTx.oncomplete = () => resolve();
-        };
-        
-        userTx.onerror = (e) => reject(e);
-    });
+        departments.forEach((dept) => {
+          deptStore.add(dept);
+        });
+        console.log(" Departments seeded successfully.");
+      }
+    };
+
+    const credTx = db.transaction(["credentials"], "readwrite");
+    const credStore = credTx.objectStore("credentials");
+    const credCountReq = credStore.count();
+
+    credCountReq.onsuccess = () => {
+      if (credCountReq.result === 0) {
+        console.log("Seeding Credentials...");
+
+        const credentials = [
+          {
+            email: "sarah@nexushr.com",
+            password: "sarah123",
+            userId: "sarah-unique-id", // You might want to match this with actual user IDs
+          },
+          {
+            email: "john@nexushr.com",
+            password: "john123",
+            userId: "john-unique-id",
+          },
+        ];
+
+        credentials.forEach((cred) => {
+          credStore.add(cred);
+        });
+        console.log("Credentials seeded successfully.");
+      }
+    };
+
+    // --- 2. SEED USERS (Your existing logic) ---
+    // We verify users exist, if not we add them using the NEW schema structure
+    const userTx = db.transaction(["users"], "readwrite");
+    const userStore = userTx.objectStore("users");
+    const userCountReq = userStore.count();
+
+    userCountReq.onsuccess = () => {
+      if (userCountReq.result === 0) {
+        console.log("Seeding Users...");
+
+        // Example Seed User matching your NEW Complex Schema
+        const seedUsers = [
+          {
+            id: crypto.randomUUID(),
+            identity: {
+              firstName: "Sarah",
+              lastName: "Connor",
+              contactNumber: "555-0199",
+              address: { city: "Los Angeles" },
+            },
+            role: "hr_manager",
+            department: { deptId: "DEP-003", deptName: "Operations" }, // Matches Dept Store
+            email: "sarah@nexushr.com",
+            isDeleted: false,
+            attendance: {
+              status: "active",
+              lastLogin: Date.now(),
+              logs: [],
+            },
+            skills: ["Management", "Recruiting"],
+            financial: {
+              baseSalary: 85000,
+              currency: "USD",
+              taxBrackets: "tier_2",
+              bankDetail: { bankName: "Chase", accountNumber: "****1234" },
+            },
+          },
+          // Add a Tech Employee
+          {
+            id: crypto.randomUUID(),
+            identity: {
+              firstName: "John",
+              lastName: "Doe",
+              contactNumber: "555-0200",
+              address: { city: "New York" },
+            },
+            role: "employee",
+            department: { deptId: "DEP-002", deptName: "Tech" },
+            email: "john@nexushr.com",
+            isDeleted: false,
+            attendance: { status: "active", lastLogin: Date.now(), logs: [] },
+            skills: ["JavaScript", "React", "Node.js"],
+            financial: {
+              baseSalary: 65000,
+              currency: "USD",
+              taxBrackets: "tier_1",
+              bankDetail: { bankName: "Citi", accountNumber: "****5678" },
+            },
+          },
+        ];
+
+        seedUsers.forEach((user) => {
+          userStore.add(user);
+        });
+        console.log("Users seeded successfully.");
+      }
+
+      // Resolve the Promise when transactions are done
+      userTx.oncomplete = () => resolve();
+    };
+
+    userTx.onerror = (e) => reject(e);
+  });
 };
-
