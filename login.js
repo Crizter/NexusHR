@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', async()=> {
 const loginForm = document.getElementById('login-form') ; 
 const emailInput = document.getElementById('email') ; 
 const passwordInput = document.getElementById('password') ; 
-const loginBtn = document.querySelector('.login-btn') ; 
+const loginBtn = document.querySelector('.login-btn') ;  
 
 
 
