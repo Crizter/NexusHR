@@ -1,8 +1,6 @@
 // Web Worker for Mission Critical HR Payroll Calculations
 // Offloads heavy computation from main thread to maintain 60fps UI
 
-// Web Worker for Mission Critical HR Payroll Calculations
-// Offloads heavy computation from main thread to maintain 60fps UI
 
 self.onmessage = function(event) {
     const { action, employees, month } = event.data;
