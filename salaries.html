@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus HR - Salary Management</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/salaries.css">
+</head>
+<body>
+    <!-- Page Header -->
+    <div class="salary-header">
+        <div class="header-content">
+            <h1>Salary Management</h1>
+            <div class="header-actions">
+                <div class="search-container">
+                    <input type="text" id="employee-search" placeholder="Search employees..." class="search-input">
+                    <span class="search-icon">🔍</span>
+                </div>
+                <select id="department-filter" class="filter-select">
+                    <option value="">All Departments</option>
+                    <option value="Operations">Operations</option>
+                    <option value="Tech">Tech</option>
+                    <option value="Sales">Sales</option>
+                    <option value="HR">HR</option>
+                </select>
+                <!-- <button id="bulk-update-btn" class="btn-secondary">
+                    <span class="btn-icon">📊</span>
+                    Bulk Update
+                </button> -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            
+            <div class="stat-content">
+                <div class="stat-value" id="total-employees-count">0</div>
+                <div class="stat-label">Total Employees</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            
+            <div class="stat-content">
+                <div class="stat-value" id="average-salary">$0</div>
+                <div class="stat-label">Average Salary</div>
+            </div>
+        </div>  
+        <div class="stat-card">
+            
+            <div class="stat-content">
+                <div class="stat-value" id="total-payroll">$0</div>
+                <div class="stat-label">Total Payroll</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            
+            <div class="stat-content">
+                <div class="stat-value" id="pending-updates">0</div>
+                <div class="stat-label">Pending Updates</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Salary Table -->
+    <div class="salary-section">
+        <div class="section-header">
+            <h2>Employee Salaries</h2>
+            <div class="section-actions">
+                <button id="export-salaries-btn" class="btn-secondary">
+                    <span class="btn-icon">📄</span>
+                    Export
+                </button>
+                <button id="salary-analytics-btn" class="btn-secondary">
+                    <span class="btn-icon">📊</span>
+                    Analytics
+                </button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="salary-table" class="salary-table">
+                <thead>
+                    <tr>
+                        <th>
+                            <input type="checkbox" id="select-all" class="checkbox">
+                        </th>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Current Salary</th>
+                        <th>Tax Bracket</th>
+                        <th>Currency</th>
+                        <th>Bank Details</th>
+                        <th>Last Updated</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="salary-list">
+                    <tr class="no-data-row">
+                        <td colspan="9" class="no-data">
+                            <div class="empty-state">
+                                <div class="empty-icon">💼</div>
+                                <h3>No Salary Data</h3>
+                                <p>Employee salary information will appear here</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Edit Salary Modal -->
+        <!-- Edit Salary Modal -->
+    <dialog id="edit-salary-modal" class="modal">
+        <div class="modal-header">
+            <h2>Update Salary Information</h2>
+            <button type="button" class="btn-close" onclick="document.getElementById('edit-salary-modal').close()">×</button>
+        </div>
+        
+        <form id="edit-salary-form">
+            <div class="modal-body">
+                <input type="hidden" id="edit-employee-id">
+                
+                <!-- Employee Info Display -->
+                <div class="employee-info-display">
+                    <div class="employee-avatar">👤</div>
+                    <div class="employee-details">
+                        <h3 id="edit-employee-name">Employee Name</h3>
+                        <p id="edit-employee-dept">Department</p>
+                        <p id="edit-employee-role">Role</p>
+                    </div>
+                </div>
+
+                <!-- Salary Information Form -->
+                <div class="salary-form-grid">
+                    <div class="form-group">
+                        <label for="edit-base-salary">Base Salary</label>
+                        <div class="currency-input">
+                            <span class="currency-symbol">$</span>
+                            <input type="number" id="edit-base-salary" min="0" step="1000" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-currency">Currency</label>
+                        <select id="edit-currency" required>
+                            <option value="USD">USD - US Dollar</option>
+                            <option value="EUR">EUR - Euro</option>
+                            <option value="GBP">GBP - British Pound</option>
+                            <option value="CAD">CAD - Canadian Dollar</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-tax-bracket">Tax Bracket</label>
+                        <select id="edit-tax-bracket" required>
+                            <option value="tier_1">Tier 1 (10% Tax)</option>
+                            <option value="tier_2">Tier 2 (20% Tax)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-bank-name">Bank Name</label>
+                        <input type="text" id="edit-bank-name" placeholder="e.g., Chase Bank" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-account-number">Account Number</label>
+                        <input type="text" id="edit-account-number" placeholder="****1234" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-effective-date">Effective Date</label>
+                        <input type="date" id="edit-effective-date" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="document.getElementById('edit-salary-modal').close()">Cancel</button>
+                <button type="submit" class="btn-save">
+                    <span class="btn-icon">💾</span>
+                    Update Salary
+                </button>
+            </div>
+        </form>
+    </dialog>
+
+    
+
+    <!-- Salary Analytics Modal -->
+    <dialog id="analytics-modal" class="modal large-modal">
+        <div class="modal-header">
+            <h2>Salary Analytics</h2>
+            <button type="button" class="btn-close" onclick="document.getElementById('analytics-modal').close()">×</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="analytics-grid">
+                <div class="analytics-card">
+                    <h4>Department Breakdown</h4>
+                    <div id="department-chart" class="chart-container">
+                        <!-- Chart will be generated here -->
+                    </div>
+                </div>
+                
+                <div class="analytics-card">
+                    <h4>Salary Distribution</h4>
+                    <div id="salary-distribution" class="distribution-bars">
+                        <!-- Salary ranges will be shown here -->
+                    </div>
+                </div>
+                
+                <div class="analytics-card">
+                    <h4>Tax Bracket Analysis</h4>
+                    <div id="tax-bracket-stats" class="stats-list">
+                        <!-- Tax bracket stats here -->
+                    </div>
+                </div>
+                
+                <div class="analytics-card">
+                    <h4>Recent Changes</h4>
+                    <div id="recent-changes" class="changes-timeline">
+                        <!-- Recent salary changes timeline -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-actions">
+            <button type="button" class="btn-secondary">Export Report</button>
+            <button type="button" class="btn-cancel" onclick="document.getElementById('analytics-modal').close()">Close</button>
+        </div>
+    </dialog>
+
+    <script type="module" src="js/features/salaries.js"></script>
+</body>
+</html>

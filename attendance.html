@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus HR - Attendance</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/attendance.css">
+</head>
+<body>
+    <main class="main-content">
+        <header class="page-header">
+            <div>
+                <h1>Time & Attendance</h1>
+                <p class="subtitle">Track your hours and view office activity.</p>
+            </div>
+            <div class="diagnostics-panel">
+    <div class="diagnostic-item">
+        <span>WebSocket Latency:</span>
+        <span id="ws-latency">Connecting...</span>
+    </div>
+    <div class="diagnostic-item">
+        <span>Server Uptime:</span>
+        <span id="server-uptime">Loading...</span>
+    </div>
+    <div class="diagnostic-item">
+        <span>Server Memory:</span>
+        <span id="server-memory">Loading...</span>
+    </div>
+</div>
+            <div class="connection-status" id="network-status" title="Server Connection">
+                <span class="status-dot"></span>
+                <span class="status-text">Connecting...</span>
+            </div>
+        </header>
+
+        <div class="attendance-grid">
+            <div class="col-personal">
+                <div class="card timer-card">
+                    <h3>Current Session</h3>
+                    <div class="timer-display" id="main-timer">00:00:00</div>
+                    
+                    <div class="timer-controls">
+                        <button id="btn-clock-in" class="btn-large btn-green">
+                            ▶ Clock In
+                        </button>
+                        <button id="btn-clock-out" class="btn-large btn-red hidden">
+                            ⏹ Clock Out
+                        </button>
+                    </div>
+                    
+                    <div class="session-info">
+                        <small>Started at: <span id="start-time-display">--:--</span></small>
+                    </div>
+                </div>
+
+                <div class="card history-card">
+                    <h3>My Recent Logs</h3>
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>In</th>
+                                <th>Out</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody id="my-logs-list">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="col-feed">
+                <div class="feed-header">
+                    <h3>🔴 Live Office Activity</h3>
+                    <span class="badge live">LIVE</span>
+                </div>
+                
+                <div class="sse-feed-container" id="sse-feed-list">
+                    <div class="feed-placeholder">Waiting for updates...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" defer src="js/features/attendance.js"></script>
+</body>
+</html>

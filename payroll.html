@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus HR - Payroll Management</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/payroll.css">
+</head>
+<body>
+    <!-- Page Header -->
+    <div class="payroll-header">
+          <!-- Add Worker LED here -->
+                    <div class="worker-status">
+                        <div id="worker-led" class="led-light idle"></div>
+                        <span class="worker-label">Worker Status</span>
+                    </div>
+
+        <div class="header-content">
+            <h1>Payroll Management</h1>
+            <div class="header-actions">
+                <select id="month-selector" class="month-select">
+                    <option value="January 2026">January 2026</option>
+                    <option value="February 2026">February 2026</option>
+                    <option value="March 2026">March 2026</option>
+                    <option value="April 2026">April 2026</option>
+                    <option value="May 2026">May 2026</option>
+                    <option value="June 2026">June 2026</option>
+                    <option value="July 2026">July 2026</option>
+                    <option value="August 2026">August 2026</option>
+                    <option value="September 2026">September 2026</option>
+                    <option value="October 2026">October 2026</option>
+                    <option value="November 2026">November 2026</option>
+                    <option value="December 2026">December 2026</option>
+                </select>
+                <button id="generate-payroll-btn" class="btn-primary">
+                    <span class="btn-icon">💰</span>
+                    Generate Payroll
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            
+            <div class="stat-content">
+                <div class="stat-value" id="total-employees">0</div>
+                <div class="stat-label">Total Employees</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            
+            <div class="stat-content">
+                <div class="stat-value" id="total-gross">$0</div>
+                <div class="stat-label">Total Gross Pay</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            
+            <div class="stat-content">
+                <div class="stat-value" id="total-deductions">$0</div>
+                <div class="stat-label">Total Deductions</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            
+            <div class="stat-content">
+                <div class="stat-value" id="total-net">$0</div>
+                <div class="stat-label">Total Net Pay</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing Status -->
+    <div id="processing-status" class="processing-status hidden">
+        <div class="processing-content">
+            <div class="processing-spinner"></div>
+            <div class="processing-text">
+                <h3>Processing Payroll...</h3>
+                <p id="processing-details">Initializing calculations...</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payroll Table -->
+    <div class="payroll-section">
+        <div class="section-header">
+            <h2>Payroll Details</h2>
+            <div class="section-actions">
+                <button id="export-btn" class="btn-secondary" disabled>
+                    <span class="btn-icon">📄</span>
+                    Export CSV
+                </button>
+                <button id="print-btn" class="btn-secondary" disabled>
+                    <span class="btn-icon">🖨️</span>
+                    Print Report
+                </button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="payroll-table" class="payroll-table">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Base Salary</th>
+                        <th>Tax Bracket</th>
+                        <th>Gross Pay</th>
+                        <th>Tax Deduction</th>
+                        <th>Net Pay</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="payroll-list">
+                    <tr class="no-data-row">
+                        <td colspan="9" class="no-data">
+                            <div class="empty-state">
+                                <div class="empty-icon">📋</div>
+                                <h3>No Payroll Data</h3>
+                                <p>Generate payroll for the selected month to view details</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Payroll Detail Modal -->
+    <dialog id="payroll-detail-modal" class="modal">
+        <div class="modal-header">
+            <h2>Payroll Details</h2>
+            <button type="button" class="btn-close" onclick="document.getElementById('payroll-detail-modal').close()">×</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="employee-info">
+                <div class="employee-avatar">👤</div>
+                <div class="employee-details">
+                    <h3 id="modal-employee-name">Employee Name</h3>
+                    <p id="modal-employee-dept">Department</p>
+                    <p id="modal-employee-id">Employee ID</p>
+                </div>
+            </div>
+
+            <div class="payroll-breakdown">
+                <div class="breakdown-section">
+                    <h4>Earnings</h4>
+                    <div class="breakdown-item">
+                        <span>Base Salary</span>
+                        <span id="modal-base-salary">$0</span>
+                    </div>
+                    <div class="breakdown-item total">
+                        <span>Gross Pay</span>
+                        <span id="modal-gross-pay">$0</span>
+                    </div>
+                </div>
+
+                <div class="breakdown-section">
+                    <h4>Deductions</h4>
+                    <div class="breakdown-item">
+                        <span>Tax Deduction (<span id="modal-tax-rate">0%</span>)</span>
+                        <span id="modal-tax-deduction">$0</span>
+                    </div>
+                    <div class="breakdown-item total">
+                        <span>Total Deductions</span>
+                        <span id="modal-total-deductions">$0</span>
+                    </div>
+                </div>
+
+                <div class="breakdown-section final">
+                    <div class="breakdown-item net-pay">
+                        <span>Net Pay</span>
+                        <span id="modal-net-pay">$0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="payroll-metadata">
+                <div class="metadata-item">
+                    <span class="metadata-label">Generated On:</span>
+                    <span id="modal-generated-date">--</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">Pay Period:</span>
+                    <span id="modal-pay-period">--</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">Payment Status:</span>
+                    <span class="status-badge" id="modal-payment-status">Pending</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-actions">
+            <button type="button" class="btn-secondary" onclick="document.getElementById('payroll-detail-modal').close()">Close</button>
+            <button type="button" class="btn-primary" id="download-slip-btn">
+                <span class="btn-icon">📄</span>
+                Download Slip
+            </button>
+        </div>
+    </dialog>
+
+    <script type="module" src="js/features/payroll.js"></script>
+</body>
+</html>

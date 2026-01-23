@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus HR - Mission Critical</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <!-- <div class="header-section">
+        <h1>Nexus HR Directory</h1>
+        <button id="add-employee-btn" class="btn-primary">
+            <span class="btn-icon">+</span>
+            Add Employee
+        </button>
+    </div> -->
+    <div class="table-container">
+        <table id="employee-table" class="employee-table">
+            <thead>
+                <tr>
+                    <th>Employee ID</th>
+                    <th>Name</th>
+                    <th>Role</th>
+                    <th>Department</th>
+                    <th>Email</th>
+                    <th>Contact</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="employee-list">
+                <!-- Employee rows will be inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!--  MODAL  -->
+    <dialog id="edit-modal" class="modal">
+    <div class="modal-header">
+        <h2>Edit Employee</h2>
+        <button type="button" class="btn-close" onclick="document.getElementById('edit-modal').close()">×</button>
+    </div>
+    
+    <form id="edit-form">
+        <input type="hidden" id="edit-id"> <div class="form-group">
+            <label>First Name</label>
+            <input type="text" id="edit-firstname" required>
+        </div>
+
+        <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" id="edit-lastname" required>
+        </div>
+
+        <div class="form-group">
+            <label>Department</label>
+            <select id="edit-dept">
+                <option value="Operations">Operations</option>
+                <option value="Tech">Tech</option>
+                <option value="Sales">Sales</option>
+                <option value="HR">HR</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Role</label>
+            <select id="edit-role">
+                <option value="employee">Employee</option>
+                <option value="hr_manager">HR Manager</option>
+            </select>
+        </div>
+
+        <div class="modal-actions">
+            <button type="button" class="btn-cancel" onclick="document.getElementById('edit-modal').close()">Cancel</button>
+            <button type="submit" class="btn-save">Save Changes</button>
+        </div>
+    </form>
+</dialog>
+<!-- ADD EMPLOYEE MODAL -->
+<dialog id="add-modal" class="modal">
+    <div class="modal-header">
+        <h2>Add New Employee</h2>
+        <button type="button" class="btn-close" onclick="document.getElementById('add-modal').close()">×</button>
+    </div>
+    <form id="add-form">
+        <div class="form-group">
+            <label>First Name</label>
+            <input type="text" id="add-firstname" required>
+        </div>
+        <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" id="add-lastname" required>
+        </div>
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="add-email" required>
+        </div>
+        <div class="form-group">
+    <label>Set Password</label>
+    <input type="password" id="add-password" required placeholder="Set initial password">
+</div>
+        <div class="form-group">
+            <label>Contact Number</label>
+            <input type="tel" id="add-contact">
+        </div>
+        
+
+        
+        <div class="form-group">
+            <label>City</label>
+            <input type="text" id="add-city" placeholder="New York">
+        </div>
+        
+        
+        <div class="form-group">
+            <label>Department</label>
+            <select id="add-dept" required>
+                <option value="">Select Department</option>
+                <option value="Operations">Operations</option>
+                <option value="Tech">Tech</option>
+                <option value="Sales">Sales</option>
+                <option value="HR">HR</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Role</label>
+            <select id="add-role" required>
+                <option value="">Select Role</option>
+                <option value="employee">Employee</option>
+                <option value="hr_manager">HR Manager</option>
+            </select>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn-cancel" onclick="document.getElementById('add-modal').close()">Cancel</button>
+            <button type="submit" class="btn-save">Add Employee</button>
+        </div>
+    </form>
+</dialog>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
