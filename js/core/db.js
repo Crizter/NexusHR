@@ -1,5 +1,4 @@
 
-import { timeStamp } from "console";
 import { checkPermission } from "../auth/rbac.js";
 import { PERMISSIONS } from "../config.js";
 import { generateUUID } from "../utils/crypto.js";
@@ -450,7 +449,7 @@ export const getAnnouncements = async (db, currentUserRole) => {
   }
    const tx = db.transaction(["announcement"], 'readonly') ; 
     const announcementStore = tx.objectStore("announcement") ;
-    const index = store.index("dateIndex");
+    const index = announcementStore.index("dateIndex");
     return new Promise((resolve,reject) => { 
       const request = announcementStore.getAll() ; 
       request.onsuccess = () => { 
@@ -462,9 +461,9 @@ export const getAnnouncements = async (db, currentUserRole) => {
     });
 };
 
-// --- HOLIDAYS ---
+// holidays 
 
-export const addHoliday = async (db, userRole, holidayData) => {
+export const addHoliday = async (db, currentUserRole, holidayData) => {
       if(!checkPermission(currentUserRole, PERMISSIONS.EDIT_RECORD)){
      throw new Error("Access Denied: You do not have permission to edit"); 
   }
@@ -486,7 +485,10 @@ export const addHoliday = async (db, userRole, holidayData) => {
     });
 };
 
-export const getHolidays = async (db) => {
+export const getHolidays = async (db, currentUserRole) => {
+    if(!checkPermission(currentUserRole, PERMISSIONS.VIEW_RECORD)){
+     throw new Error("Access Denied: You do not have permission to edit"); 
+  } 
     const tx = db.transaction(["holidays"], 'readonly');
     const store = tx.objectStore("holidays");
     
