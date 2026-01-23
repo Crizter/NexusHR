@@ -3,11 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus HR - Dashboard</title>
     <link rel="stylesheet" href="styles/main.css">
-    <title>NEXUS HR PORTAL</title>
+    <link rel="stylesheet" href="styles/dashboard.css">
 </head>
-<body>
+<body class="has-sidebar">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="header-content">
+            <div class="greeting-section">
+                <h1 id="dashboard-greeting">Good Morning</h1>
+                <p class="greeting-subtitle">Welcome back to your workspace</p>
+            </div>
+            <div class="header-actions">
+                <label for="dashboard-filter" class="filter-label">Filter News:</label>
+                <select id="dashboard-filter" class="filter-select">
+                    <option value="all">All Branches</option>
+                    <option value="operations">Operations</option>
+                    <option value="tech">Tech</option>
+                    <option value="sales">Sales</option>
+                    <option value="hr">HR</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            
+            <div class="stat-content">
+                <div class="stat-value" id="attendance-percentage">85%</div>
+                <div class="stat-label">Weekly Attendance</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            
+            <div class="stat-content">
+                <div class="stat-value" id="announcements-count">0</div>
+                <div class="stat-label">Active Announcements</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            
+            <div class="stat-content">
+                <div class="stat-value" id="holidays-count">0</div>
+                <div class="stat-label">Upcoming Holidays</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Grid -->
+    <main class="dashboard-grid">
+        <!-- Attendance Section -->
+        <section class="dashboard-section attendance-section">
+            <div class="section-header">
+                <h2>Weekly Attendance</h2>
+                <div class="section-actions">
+                    <button class="btn-secondary" onclick="window.location.href='attendance.html'">
+                        <span class="btn-icon">⏰</span>
+                        View Details
+                    </button>
+                </div>
+            </div>
+            <div class="attendance-chart">
+                <div class="chart-container">
+                    <div class="chart-bar" style="height: 80%" data-day="Mon" title="6.4 hours">
+                        <span class="bar-label">M</span>
+                    </div>
+                    <div class="chart-bar" style="height: 90%" data-day="Tue" title="7.2 hours">
+                        <span class="bar-label">T</span>
+                    </div>
+                    <div class="chart-bar" style="height: 100%" data-day="Wed" title="8.0 hours">
+                        <span class="bar-label">W</span>
+                    </div>
+                    <div class="chart-bar" style="height: 75%" data-day="Thu" title="6.0 hours">
+                        <span class="bar-label">T</span>
+                    </div>
+                    <div class="chart-bar" style="height: 95%" data-day="Fri" title="7.6 hours">
+                        <span class="bar-label">F</span>
+                    </div>
+                    <div class="chart-bar" style="height: 0%" data-day="Sat" title="0 hours">
+                        <span class="bar-label">S</span>
+                    </div>
+                    <div class="chart-bar" style="height: 0%" data-day="Sun" title="0 hours">
+                        <span class="bar-label">S</span>
+                    </div>
+                </div>
+                <div class="chart-legend">
+                    <span class="legend-item">🟢 Present (8+ hours)</span>
+                    <span class="legend-item">🟡 Partial (&lt;8 hours)</span>
+                    <span class="legend-item">🔴 Absent</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Announcements Section -->
+        <section class="dashboard-section announcements-section">
+            <div class="section-header">
+                <h2>Company Announcements</h2>
+                <div class="section-actions">
+                    <button id="btn-add-news" class="btn-primary" style="display: none;">
+                        <span class="btn-icon">+</span>
+                        Add Announcement
+                    </button>
+                </div>
+            </div>
+            <div id="news-feed-container" class="news-feed-container">
+                <div class="loading-state">Loading announcements...</div>
+            </div>
+        </section>
+
+        <!-- Holidays Section -->
+        <section class="dashboard-section holidays-section">
+            <div class="section-header">
+                <h2>Upcoming Holidays</h2>
+                <div class="section-actions">
+                    <!-- Add Holiday button will be dynamically added for HR users -->
+                </div>
+            </div>
+            <div id="holiday-list" class="holiday-list">
+                <div class="loading-state">Loading holidays...</div>
+            </div>
+        </section>
+
     
+    </main>
+
+ 
+
+    <!-- Sidebar will be dynamically injected -->
+    <div id="sidebar-container"></div>
+
+    <script type="module" src="js/features/dashboard.js"></script>
 </body>
-<script defer src="js/main.js" type="module" ></script>
 </html>

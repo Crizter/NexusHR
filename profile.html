@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Profile - Nexus HR</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/profile.css">
+</head>
+<body class="has-sidebar">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Employee Profile</h1>
+        <div class="header-actions">
+            <button class="btn-secondary" onclick="window.location.href='directory.html'">
+                <span class="btn-icon">←</span>
+                Back to Directory
+            </button>
+        </div>
+    </div>
+
+    <!-- Profile Content -->
+    <div class="profile-container">
+        <!-- Left Column: Identity Card -->
+        <div class="identity-card">
+            <!-- Avatar Section -->
+            <div class="avatar-section">
+                <div id="avatar-container" class="avatar-container">
+                    <img id="avatar-image" src="" alt="Profile Avatar" class="avatar-image">
+                    <div class="avatar-placeholder">
+                        <span class="avatar-initials" id="avatar-initials">JD</span>
+                    </div>
+                    <div class="avatar-overlay">
+                        <span class="camera-icon">📷</span>
+                    </div>
+                    <input type="file" id="avatar-upload" class="avatar-upload" accept="image/*">
+                </div>
+                <div class="upload-hint">Click to upload photo</div>
+            </div>
+
+            <!-- Employee Info -->
+            <div class="employee-info">
+                <h2 id="employee-name" class="employee-name">John Doe</h2>
+                <p id="employee-role" class="employee-role">Software Engineer</p>
+            </div>
+
+            <!-- System Data -->
+            <div class="system-data">
+                <h3 class="section-title">
+                    <span class="lock-icon">🔒</span>
+                    System Information
+                </h3>
+                <div class="data-grid">
+                    <div class="data-item">
+                        <label class="data-label">Employee ID</label>
+                        <span id="employee-id" class="data-value">EMP-001</span>
+                    </div>
+                    <div class="data-item">
+                        <label class="data-label">Department</label>
+                        <span id="employee-department" class="data-value">Technology</span>
+                    </div>
+                    <div class="data-item">
+                        <label class="data-label">Join Date</label>
+                        <span id="employee-join-date" class="data-value">Jan 15, 2024</span>
+                    </div>
+                    <div class="data-item">
+                        <label class="data-label">Base Salary</label>
+                        <span id="employee-salary" class="data-value">$65,000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Personal Details & Skills -->
+        <div class="details-section">
+            <!-- Contact Information -->
+            <div class="section contact-section">
+                <div class="section-header">
+                    <h3 class="section-title">Contact Information</h3>
+                    <button id="edit-contact-btn" class="btn-edit-toggle">
+                        <span class="edit-icon">✏️</span>
+                        Edit
+                    </button>
+                </div>
+                
+                <form id="contact-form" class="contact-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="phone-number">Phone Number</label>
+                            <input type="tel" id="phone-number" name="phoneNumber" 
+                                   placeholder="+1 (555) 123-4567" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="personal-email">Personal Email</label>
+                            <input type="email" id="personal-email" name="personalEmail" 
+                                   placeholder="john.doe@personal.com" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="address">Address</label>
+                        <textarea id="address" name="address" rows="3" 
+                                  placeholder="123 Main Street, City, State, ZIP" readonly></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="emergency-contact">Emergency Contact</label>
+                            <input type="text" id="emergency-contact" name="emergencyContact" 
+                                   placeholder="Jane Doe" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="emergency-phone">Emergency Phone</label>
+                            <input type="tel" id="emergency-phone" name="emergencyPhone" 
+                                   placeholder="+1 (555) 987-6543" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions" id="contact-form-actions" style="display: none;">
+                        <button type="button" id="cancel-contact-btn" class="btn-cancel">Cancel</button>
+                        <button type="submit" class="btn-save">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Professional Skills -->
+            <div class="section skills-section">
+                <div class="section-header">
+                    <h3 class="section-title">Professional Skills</h3>
+                    <span class="skills-count" id="skills-count">0 skills</span>
+                </div>
+                
+                <div class="skills-input-container">
+                    <input type="text" id="skill-input" placeholder="Add a skill (e.g., JavaScript, Project Management)" 
+                           class="skill-input">
+                    <button id="add-skill-btn" class="btn-add-skill">
+                        <span class="plus-icon">+</span>
+                        Add
+                    </button>
+                </div>
+                
+                <div id="skills-list" class="skills-list">
+                    <!-- Skills will be dynamically added here -->
+                </div>
+                
+                <div class="skills-suggestions">
+                    <p class="suggestions-title">Popular Skills:</p>
+                    <div class="suggestion-pills">
+                        <button class="suggestion-pill" data-skill="JavaScript">JavaScript</button>
+                        <button class="suggestion-pill" data-skill="Project Management">Project Management</button>
+                        <button class="suggestion-pill" data-skill="Python">Python</button>
+                        <button class="suggestion-pill" data-skill="Communication">Communication</button>
+                        <button class="suggestion-pill" data-skill="Leadership">Leadership</button>
+                        <button class="suggestion-pill" data-skill="Data Analysis">Data Analysis</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Info Section -->
+            <div class="section additional-info">
+                <div class="section-header">
+                    <h3 class="section-title">Additional Information</h3>
+                </div>
+                
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label class="info-label">Last Login</label>
+                        <span id="last-login" class="info-value">2 hours ago</span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">Account Status</label>
+                        <span id="account-status" class="info-value status-active">Active</span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">Profile Completion</label>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div id="completion-progress" class="progress-fill" style="width: 75%;"></div>
+                            </div>
+                            <span class="progress-text">75%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar will be dynamically injected -->
+    <div id="sidebar-container"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Updating profile...</p>
+        </div>
+    </div>
+
+    <script type="module" src="js/features/profile.js"></script>
+</body>
+</html>

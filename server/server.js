@@ -56,7 +56,7 @@ app.post("/broadcast-attendance", (req, res) => {
   res.json({ success: true, broadcastCount: sseClients.length });
 });
 
-// ADD MISSING HEALTH ENDPOINT
+//  HEALTH ENDPOINT
 app.get("/health", (req, res) => {
   const uptime = process.uptime(); // in seconds
   const memoryUsage = process.memoryUsage().rss; // in bytes

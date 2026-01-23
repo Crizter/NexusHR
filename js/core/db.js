@@ -1,6 +1,7 @@
 
 import { checkPermission } from "../auth/rbac.js";
 import { PERMISSIONS } from "../config.js";
+import { generateUUID } from "../utils/crypto.js";
 // opening the database
 export const connectToDb = async (version) => {
   return await openConnection("NEXUSHR_VAULT", version);
@@ -21,6 +22,31 @@ export async function openConnection(dbName, version = 1) {
         userStore.createIndex("emailIndex", "email", { unique: true });
         userStore.createIndex("deptIndex", "department", { unique: false });
       }
+
+      // announcement store 
+      // schema
+      //       id : "uuid"
+      // title: "office renovation"
+      // content : "2nd floor getting renovated"
+      // date : "timestamp"
+      // priority : "high/low/medium"
+      // authorId : "hr_managerId"
+      if(!db.objectStoreNames.contains("announcement")){
+        const announcementStore = db.createObjectStore("announcement", {keyPath:"id"});
+        announcementStore.createIndex("priorityIndex","priority", {unique:false}) ; 
+        announcementStore.createIndex("dateIndex", "date", { unique: false }); // Useful for sorting
+      };
+
+      // holidays schema
+      // id : "uuid"
+      // name : "independence day"
+      // date : "2024-07-04"
+      // type: 
+      if(!db.objectStoreNames.contains("holidays")){
+          const holidayStore =  db.createObjectStore("holidays", {keyPath:"id"});        
+          holidayStore.createIndex("dateIndex", "date", { unique: true }); // No two holidays on same day
+      };
+
       // sync queue for offline management
       if (!db.objectStoreNames.contains("syncQueue")) {
         db.createObjectStore("syncQueue", { keyPath: "idemPotencyKey" });
@@ -393,3 +419,88 @@ export const updateEmployeeAttendance = async (db, currentUserRole, userId, atte
     }
   })
 }
+
+// add data in announcements 
+export const addAnnouncements = async (db,currentUserRole, announcementData) => { 
+    if(!checkPermission(currentUserRole,PERMISSIONS.EDIT_RECORD)){
+         throw new Error("Access Denied: You do not have permission to edit");
+    }
+    const tx = db.transaction(["announcement"], 'readwrite') ; 
+    const announcementStore = tx.objectStore("announcement") ;
+    // update the data
+    const updatedData = { 
+      ...announcementData,
+      id : generateUUID(),
+      date : Date.now(),
+    } 
+  
+    return new Promise ((resolve, reject) => { 
+      const request = announcementStore.add(updatedData);
+      request.onsuccess = () => resolve(updatedData);
+      request.onerror = () => reject(request.error) ; 
+     
+    }) ;
+};
+
+// get announcements 
+export const getAnnouncements = async (db, currentUserRole) => { 
+  if(!checkPermission(currentUserRole, PERMISSIONS.VIEW_RECORD)){
+     throw new Error("Access Denied: You do not have permission to edit"); 
+  }
+   const tx = db.transaction(["announcement"], 'readonly') ; 
+    const announcementStore = tx.objectStore("announcement") ;
+    const index = announcementStore.index("dateIndex");
+    return new Promise((resolve,reject) => { 
+      const request = announcementStore.getAll() ; 
+      request.onsuccess = () => { 
+        const sorted = request.result.sort((a, b) => b.date - a.date);
+        resolve(sorted) ; 
+      }
+      
+      request.onerror = () => reject(request.error) ; 
+    });
+};
+
+// holidays 
+
+export const addHoliday = async (db, currentUserRole, holidayData) => {
+      if(!checkPermission(currentUserRole, PERMISSIONS.EDIT_RECORD)){
+     throw new Error("Access Denied: You do not have permission to edit"); 
+  }
+
+    const tx = db.transaction(["holidays"], 'readwrite');
+    const store = tx.objectStore("holidays");
+
+    const newHoliday = {
+        id: generateUUID(),
+        name: holidayData.name, // e.g. "Labor Day"
+        date: holidayData.date, // e.g. "2024-09-01" (ISO String)
+        type: holidayData.type || "public"
+    };
+
+    return new Promise((resolve, reject) => {
+        const req = store.add(newHoliday);
+        req.onsuccess = () => resolve(newHoliday);
+        req.onerror = () => reject(req.error);
+    });
+};
+
+export const getHolidays = async (db, currentUserRole) => {
+    if(!checkPermission(currentUserRole, PERMISSIONS.VIEW_RECORD)){
+     throw new Error("Access Denied: You do not have permission to edit"); 
+  } 
+    const tx = db.transaction(["holidays"], 'readonly');
+    const store = tx.objectStore("holidays");
+    
+    return new Promise((resolve, reject) => {
+        const req = store.getAll();
+        req.onsuccess = () => {
+             // Sort by date ascending (Next holiday first)
+            const sorted = req.result.sort((a, b) => new Date(a.date) - new Date(b.date));
+            resolve(sorted);
+        };
+        req.onerror = () => reject(req.error);
+    });
+};
+
+

@@ -4,41 +4,49 @@ export const createSidebar = () => {
     
     // Define menu items based on role
     const menuItems = [
+           {
+            id:'profile', 
+            label: 'Profile', 
+            icon:'', 
+            href : 'profile.html',
+            roles: ['hr_manager','employee','super_admin'],
+        },
         { 
             id: 'index', 
             label: 'Dashboard', 
-            icon: '📊', 
+            icon: '', 
             href: 'index.html',
             roles: ['hr_manager', 'employee', 'super_admin']
         },
         { 
             id: 'directory', 
             label: 'Employee Directory', 
-            icon: '👥', 
+            icon: '', 
             href: 'directory.html',
             roles: ['hr_manager', 'employee', 'super_admin']
         },
         { 
             id: 'payroll', 
             label: 'Payroll', 
-            icon: '💰', 
+            icon: '', 
             href: 'payroll.html',
             roles: ['hr_manager', 'super_admin']
         },
         { 
             id: 'attendance', 
             label: 'Attendance', 
-            icon: '⏰', 
+            icon: '', 
             href: 'attendance.html',
             roles: ['hr_manager', 'employee', 'super_admin']
         },
         { 
             id: 'salaries', 
             label: 'Salaries', 
-            icon: '📈', 
+            icon: '', 
             href: 'salaries.html',
             roles: ['hr_manager', 'super_admin']
-        }
+        }, 
+     
     ];
 
     // Filter menu items based on user role
