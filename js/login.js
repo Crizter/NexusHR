@@ -4,7 +4,7 @@ import { login } from "./auth/auth-service.js";
 let db  ; 
 document.addEventListener('DOMContentLoaded', async()=> { 
     try {
-         db = await  connectToDb(2) ; 
+         db = await  connectToDb() ; 
         await seedDatabase(db) ; 
         console.log('database intialized') ;  
     } catch (error) {

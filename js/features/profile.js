@@ -3,6 +3,11 @@ import { connectToDb, getEmployeeById, updateEmployee } from "../core/db.js";
 import { checkLoggedin } from "../auth/auth-service.js";
 import { initSidebar } from "../components/sidebar.js";
 
+// Check authentication
+        const userId = sessionStorage.getItem('userId');
+        checkLoggedin(userId);
+
+
 // Global variables
 let db;
 let currentUser;
@@ -20,12 +25,10 @@ const initializeProfile = async () => {
         // Initialize sidebar
         initSidebar();
         
-        // Check authentication
-        const userId = sessionStorage.getItem('userId');
-        checkLoggedin(userId);
+        
         
         // Connect to database
-        db = await connectToDb(2);
+        db = await connectToDb();
         
         // Load user data
         await loadUserProfile(userId);
@@ -269,7 +272,7 @@ const handleAvatarUpload = async (event) => {
         
         showLoading(true);
         
-        // Convert to base64 for storage (in a real app, you'd upload to a server)
+        // Convert to base64 for storage 
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {

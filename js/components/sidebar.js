@@ -46,6 +46,14 @@ export const createSidebar = () => {
             href: 'salaries.html',
             roles: ['hr_manager', 'super_admin']
         }, 
+        {
+            id:'leaves',
+            label:'Leaves',
+            icon: '',
+            href: 'leaves.html',
+            roles: ['hr_manager','employess'],
+        },
+        
      
     ];
 

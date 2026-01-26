@@ -70,7 +70,7 @@ const initializePayroll = async () => {
         addToastStyles();
         
         // Connect to database
-        db = await connectToDb(2);
+        db = await connectToDb();
         console.log('[Payroll] Database connected');
         
         // Initialize worker
