@@ -7,7 +7,7 @@ export  const ROLES = {
 } ; 
 
 // create a structure for permissions 
-export const PERMISSIONS = { 
+export const PERMISSIONS =Object.freeze( { 
    ADMIN_VIEW: 'admin_view', 
    VIEW_RECORD: 'view_record', 
    DELETE_RECORD: 'delete_record', 
@@ -16,11 +16,12 @@ export const PERMISSIONS = {
    LEAVE_APPROVE: 'leave_approve', 
    CLEAR_DIRECTORY: 'clear_directory' ,// deletes the entire records 
    ADD_ATTENDANCE : 'add_attendance',
-} ;
+   ADD_PROFILE: 'add_profile',
+}) ;
 
 // export the perms of each roles 
 export const ROLE_PERMISSIONS = {
     [ROLES.super_admin] : Object.values(PERMISSIONS), 
     [ROLES.hr_manager] : [ PERMISSIONS.ADD_ATTENDANCE, PERMISSIONS.VIEW_RECORD, PERMISSIONS.DELETE_RECORD, PERMISSIONS.EDIT_RECORD, PERMISSIONS.PAYROLL_RECORD, PERMISSIONS.LEAVE_APPROVE] , 
-    [ROLES.employee] : [PERMISSIONS.VIEW_RECORD, PERMISSIONS.ADD_ATTENDANCE], // Fixed: Added PERMISSIONS prefix
+    [ROLES.employee] : [PERMISSIONS.VIEW_RECORD, PERMISSIONS.ADD_ATTENDANCE, PERMISSIONS.ADD_PROFILE]
 };

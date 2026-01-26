@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded',async (event) => {
     console.log('Dom content loaded') ; 
     try {
         initSidebar() ; 
-        db = await connectToDb(2) ; 
+        db = await connectToDb() ; 
         await seedDatabase(db) ; 
         syncManager(db) ; 
         // get all the users from indexdb

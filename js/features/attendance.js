@@ -14,7 +14,7 @@ let healthMonitorInterval;
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         initSidebar();
-        db = await connectToDb(2);
+        db = await connectToDb();
         const userId = sessionStorage.getItem('userId');
         if (!userId) {
             window.location.href = 'index.html';

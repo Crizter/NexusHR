@@ -1,6 +1,12 @@
 import { connectToDb, getAnnouncements, getHolidays, getEmployeeById, addAnnouncements, addHoliday, getAllEmployees } from '../core/db.js';
 import { checkLoggedin } from '../auth/auth-service.js';
 import { initSidebar } from '../components/sidebar.js';
+
+        
+        // Check authentication
+        const userId = sessionStorage.getItem('userId');
+        checkLoggedin(userId);
+
 // Constants
 const CACHE_KEY = 'nexus_dashboard_cache';
 const FILTER_PREF_KEY = 'nexus_pref_news_filter';
@@ -19,16 +25,13 @@ const initializeDashboard = async () => {
         
         // Initialize sidebar
         initSidebar();
-        
-        // Check authentication
-        const userId = sessionStorage.getItem('userId');
-        checkLoggedin(userId);
+
         
         // Load cached data first
         loadStaleDataFromCache();
         
         // Connect to database
-        db = await connectToDb(2);
+        db = await connectToDb();
         
         // Fetch fresh data
         await fetchFreshDataAndUpdateCache();
@@ -84,7 +87,7 @@ const fetchFreshDataAndUpdateCache = async () => {
         const userId = sessionStorage.getItem('userId');
         
         // Fetch all data
-        const [announcements, holidays, employee, allEmployees, teamActivity] = await Promise.all([
+        const [announcements, holidays, employee,    allEmployees, teamActivity] = await Promise.all([
             getAnnouncements(db, userRole),
             getHolidays(db, userRole),
             getEmployeeById(db, userId),

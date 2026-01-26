@@ -23,7 +23,7 @@ const initializeSalaries = async () => {
         
         // initialize sidebar
         initSidebar();
-        db = await connectToDb(2);
+        db = await connectToDb();
         employeeCache = await getAllEmployees(db);
         filteredEmployees = [...employeeCache];
         

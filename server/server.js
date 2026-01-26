@@ -72,7 +72,7 @@ app.get("/health", (req, res) => {
 
 // WebSocket connection handling
 wss.on("connection", (ws) => {
-  console.log("🔌 WebSocket client connected");
+  console.log(" WebSocket client connected");
 
   ws.on("message", (data) => {
     const message = data.toString();
@@ -103,7 +103,7 @@ server.listen(PORT, (error) => {
   }
 });
 
-// Graceful shutdown
+//  shutdown
 process.on('SIGTERM', () => {
   console.log(' SIGTERM received, shutting down gracefully...');
   server.close(() => {
@@ -111,3 +111,4 @@ process.on('SIGTERM', () => {
     process.exit(0);
   });
 });
+
