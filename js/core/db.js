@@ -159,7 +159,7 @@ export const closeDbConnection = () => {
     dbInstance.close();
     dbInstance = null;
     connectionPromise = null;
-    console.log("[DB] Database connection closed");
+    console.log("Database connection closed");
   }
 };
 

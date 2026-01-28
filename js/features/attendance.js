@@ -1,7 +1,7 @@
 import { connectToDb, getEmployeeById, updateEmployeeAttendance } from '../core/db.js';
 import { initSidebar } from '../components/sidebar.js';
+import { SERVER_PORT,SERVER_URL } from '../config.js';
 
-const SERVER_URL = 'http://localhost:3001'; 
 let db;
 let currentUser;
 let timerInterval;
@@ -203,8 +203,8 @@ async function broadcastEvent(action, type) {
         const lastName = currentUser.identity?.lastName || 'User';
         const name = `${firstName} ${lastName}`;
         const message = `${name} ${action}`;
-        
-        await fetch(`${SERVER_URL}/broadcast-attendance`, {
+        //   
+        await fetch(`${SERVER_URL}${SERVER_PORT}/broadcast-attendance`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message, type })
@@ -220,7 +220,7 @@ function initSSE() {
     const statusText = document.querySelector('#network-status .status-text');
     
     try {
-        const evtSource = new EventSource(`${SERVER_URL}/events`);
+        const evtSource = new EventSource(`${SERVER_URL}${SERVER_PORT}/events`);
 
         evtSource.onopen = () => {
             console.log("SSE Connected");
@@ -329,7 +329,7 @@ function initHealthMonitor() {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 2000);
             
-            const response = await fetch(`${SERVER_URL}/health`, {
+            const response = await fetch(`${SERVER_URL}${SERVER_PORT}/health`, {
                 signal: controller.signal,
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }

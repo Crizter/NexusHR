@@ -1,4 +1,9 @@
 `use strict`
+
+// export variables 
+export const SERVER_PORT=`3001`
+export const SERVER_URL=`http://localhost:` ; 
+
 // hr portal roles for role based access control 
 export  const ROLES = {
     super_admin: "super_admin", 
