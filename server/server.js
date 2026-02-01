@@ -6,7 +6,7 @@ const http = require("http");
 const app = express();
 const PORT = 3001;
 
-// CORS configuration - must be before other middleware
+// CORS configuration 
 app.use(cors({
   origin: '*', // Allow all origins for development
   methods: ['GET', 'POST'],
@@ -15,10 +15,10 @@ app.use(cors({
 
 app.use(express.json());
 
-// Create HTTP server first
+//  HTTP server
 const server = http.createServer(app);
 
-// Attach WebSocket server to the HTTP server (correct syntax)
+// Attach WebSocket server to the HTTP server
 const wss = new WebSocketServer({ server });
 
 let sseClients = [];

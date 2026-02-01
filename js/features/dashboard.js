@@ -10,7 +10,7 @@ import {
 import { checkLoggedin } from "../auth/auth-service.js";
 import { initSidebar } from "../components/sidebar.js";
 import { tryCatchAsync, tryCatchSync } from "../utils/tryCatch.js";
-import { parse } from "path";
+
 // Check authentication
 const userId = sessionStorage.getItem("userId");
 checkLoggedin(userId);
@@ -29,7 +29,7 @@ const initializeDashboard = async () => {
 
   // Initialize sidebar
   const [sideBarErr] = tryCatchSync(() => initSidebar());
-  if (sideBarErr) console.error("Sidebar failed:", sidebarErr);
+  if (sideBarErr) console.error("Sidebar failed:", sideBarErr);
 
   // Load cached data first
   // loadStaleDataFromCache();
