@@ -51,7 +51,7 @@ export const LEAVE_STATUS = Object.freeze({
 
 // setup department 
 export const DEPARTMENTS = Object.freeze([
-     { deptId: "DEP-001", deptName: "Sales" },
+        { deptId: "DEP-001", deptName: "Sales" },
             { deptId: "DEP-002", deptName: "Tech" },
             { deptId: "DEP-003", deptName: "Operations" },
             { deptId: "DEP-004", deptName: "Support" }

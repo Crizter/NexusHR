@@ -76,6 +76,7 @@ loginForm.addEventListener('submit', async(e) => {
         console.log('Login success...') ; 
         // save the session 
         sessionStorage.setItem('userId', user.id) ; 
+        sessionStorage.setItem('firstName', user.identity.firstName) ; 
         sessionStorage.setItem('email',user.email) ;
         sessionStorage.setItem('role', user.role)  ;    
         sessionStorage.setItem('department', user.department.deptName) ; 
