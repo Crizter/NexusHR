@@ -49,9 +49,7 @@ async function openConnection() {
       const oldVersion = event.oldVersion;
       const newVersion = event.newVersion;
 
-      console.log(
-        `[DB] Upgrading database from version ${oldVersion} to ${newVersion}`,
-      );
+     
 
       if (!db.objectStoreNames.contains("users")) {
         const userStore = db.createObjectStore("users", { keyPath: "id" });
@@ -59,7 +57,7 @@ async function openConnection() {
         userStore.createIndex("emailIndex", "email", { unique: true });
         userStore.createIndex("deptIndex", "department", { unique: false });
         userStore.createIndex("usernameIndex", "username", { unique: false });
-        console.log("[DB] Created 'users' object store");
+        
       }
 
       if (!db.objectStoreNames.contains("payroll")) {
@@ -67,7 +65,7 @@ async function openConnection() {
           keyPath: "payrollId",
         });
         payrollStore.createIndex("userIndex", "userId", { unique: true });
-        console.log("[DB] Created 'payroll' object store");
+       
       }
 
       if (!db.objectStoreNames.contains("announcement")) {
@@ -81,7 +79,7 @@ async function openConnection() {
         announcementStore.createIndex("authorIndex", "author", {
           unique: false,
         });
-        console.log("[DB] Created 'announcement' object store");
+        
       }
 
       if (!db.objectStoreNames.contains("holidays")) {
@@ -90,17 +88,17 @@ async function openConnection() {
         });
         holidayStore.createIndex("dateIndex", "date", { unique: true });
         holidayStore.createIndex("typeIndex", "type", { unique: false });
-        console.log("[DB] Created 'holidays' object store");
+        
       }
 
       if (!db.objectStoreNames.contains("syncQueue")) {
         db.createObjectStore("syncQueue", { keyPath: "idemPotencyKey" });
-        console.log("[DB] Created 'syncQueue' object store");
+        
       }
 
       if (!db.objectStoreNames.contains("department")) {
         db.createObjectStore("department", { keyPath: "deptId" });
-        console.log("[DB] Created 'department' object store");
+        
       }
 
       if (!db.objectStoreNames.contains("leave_requests")) {
@@ -114,7 +112,7 @@ async function openConnection() {
         leaveStore.createIndex("deptIndex", "deptId", {
           unique: false,
         });
-        console.log("[DB] Created 'leave_requests' object store");
+        
       }
 
       if (!db.objectStoreNames.contains("messages")) {
@@ -124,7 +122,7 @@ async function openConnection() {
         messageStore.createIndex("conversationIndex", "conversationId", {
           unique: false,
         });
-        console.log("[DB] Created 'messages' object store");
+        
       }
 
       if (!db.objectStoreNames.contains("credentials")) {
@@ -133,16 +131,13 @@ async function openConnection() {
         });
         credentialStore.createIndex("emailIndex", "email", { unique: true });
         credentialStore.createIndex("userIdIndex", "userId", { unique: false });
-        console.log("[DB] Created 'credentials' object store");
+        
       }
     };
 
     request.onsuccess = (event) => {
       const db = event.target.result;
-      console.log(
-        `[DB] Database '${DB_NAME}' version ${DB_VERSION} initialized successfully`,
-      );
-
+    
       db.onversionchange = () => {
         console.warn(
           "[DB] Database version changed in another tab. Closing connection.",
@@ -494,7 +489,7 @@ export const seedDatabase = async (db) => {
           ];
 
           credentials.forEach((cred) => credStore.add(cred));
-          console.log("[DB] Credentials seeded successfully");
+          
         }
       };
 
@@ -505,7 +500,7 @@ export const seedDatabase = async (db) => {
 
       userCountReq.onsuccess = () => {
         if (userCountReq.result === 0) {
-          console.log("[DB] Seeding Users...");
+          
 
           const seedUsers = [
             {
@@ -557,7 +552,7 @@ export const seedDatabase = async (db) => {
           ];
 
           seedUsers.forEach((user) => userStore.add(user));
-          console.log("[DB] Users seeded successfully");
+          
         }
 
         // Resolve when all seeding is complete
@@ -572,12 +567,7 @@ export const seedDatabase = async (db) => {
 };
 
 export const applyLeave = async (db, currentUserRole, userId, payload) => {
-  console.log('[DB] applyLeave called with:', {
-    db: !!db,
-    currentUserRole,
-    userId,
-    payload
-  });
+
   
   if (!db || !userId) {
     return;
@@ -600,24 +590,10 @@ export const applyLeave = async (db, currentUserRole, userId, payload) => {
     timestamp: Date.now(),
   };
 
-  // Add detailed logging
-  console.log('[DB] Final flattened data object for IndexedDB:', data);
-  console.log('[DB] Data validation check:', {
-    hasId: !!data.id,
-    hasEmployeeId: !!data.employeeId,
-    hasType: !!data.type,
-    hasDeptId: !!data.deptId,
-    hasDeptName: !!data.deptName,
-    hasReason: !!data.reason,
-    hasStartDate: !!data.startDate,
-    hasEndDate: !!data.endDate,
-    hasStatus: !!data.status,
-    hasTimestamp: !!data.timestamp
-  });
 
   const [error, successMsg] = await tryCatchAsync(
     new Promise((resolve, reject) => {
-      console.log('[DB] Starting IndexedDB transaction');
+      
       const tx = db.transaction(["leave_requests"], "readwrite");
       const store = tx.objectStore("leave_requests");
       
@@ -631,7 +607,7 @@ export const applyLeave = async (db, currentUserRole, userId, payload) => {
           return;
         }
         
-        console.log('[DB] ID check passed, about to add flattened data:', JSON.stringify(data, null, 2));
+        
         
         // Ensure all data types are correct for the flattened structure
         const sanitizedData = {
@@ -647,12 +623,12 @@ export const applyLeave = async (db, currentUserRole, userId, payload) => {
           timestamp: Number(data.timestamp)
         };
         
-        console.log('[DB] Sanitized flattened data:', sanitizedData);
+       
         
         const req = store.add(sanitizedData);
         
         req.onsuccess = () => {
-          console.log('[DB] IndexedDB add successful');
+         
           resolve("Leave successfully applied");
         };
         
@@ -729,36 +705,31 @@ export const getLeavesByHr = async (db, userRole, hrDeptId) => {
     return [];
   }
   
-  console.log('[DB] getLeavesByHr called with:', { userRole, hrDeptId });
+  
   
   const [error, leaves] = await tryCatchAsync(
     new Promise((resolve, reject) => {
-      console.log('[DB] Starting transaction with both stores');
+      
       const tx = db.transaction(["leave_requests", "users"], "readonly");
       const leaveStore = tx.objectStore("leave_requests");
       const userStore = tx.objectStore("users");
       
-      console.log('[DB] Got both stores:', { leaveStore: !!leaveStore, userStore: !!userStore });
+      
       
       const request = leaveStore.getAll();
 
       request.onsuccess = () => {
-        console.log('[DB] All leave requests:', request.result);
+        
         
         const deptLeaves = request.result.filter(leave => {
-          console.log('[DB] Checking leave:', { 
-            leaveId: leave.id, 
-            leaveDeptId: leave.deptId, 
-            hrDeptId: hrDeptId,
-            match: leave.deptId === hrDeptId 
-          });
+        
           return leave.deptId === hrDeptId;
         });
         
-        console.log('[DB] Filtered department leaves:', deptLeaves);
+      
         
         if (deptLeaves.length === 0) {
-          console.log('[DB] No department leaves found, resolving empty array');
+          
           resolve([]);
           return;
         }
@@ -766,33 +737,33 @@ export const getLeavesByHr = async (db, userRole, hrDeptId) => {
         const enhancedLeaves = [];
         let completed = 0;
         
-        console.log(`[DB] Processing ${deptLeaves.length} leaves to get employee names`);
+        
         
         deptLeaves.forEach((leave, index) => {
-          console.log(`[DB] Processing leave ${index + 1}/${deptLeaves.length}, employeeId: ${leave.employeeId}`);
+          
           
           const getUserReq = userStore.get(leave.employeeId);
           
           getUserReq.onsuccess = () => {
             const user = getUserReq.result;
-            console.log(`[DB] User lookup result for ${leave.employeeId}:`, user);
+            
             
             const enhancedLeave = {
               ...leave,
               employeeName: user ? `${user.identity.firstName} ${user.identity.lastName}` : 'Unknown Employee'
             };
             
-            console.log(`[DB] Enhanced leave:`, enhancedLeave);
+            
             enhancedLeaves.push(enhancedLeave);
             completed++;
             
-            console.log(`[DB] Completed ${completed}/${deptLeaves.length} user lookups`);
+            
             
             // When all user lookups are complete
             if (completed === deptLeaves.length) {
-              console.log('[DB] All user lookups completed, sorting and resolving');
+              
               const sorted = enhancedLeaves.sort((a, b) => b.timestamp - a.timestamp);
-              console.log('[DB] Final enhanced leaves:', sorted);
+              
               resolve(sorted);
             }
           };
@@ -807,10 +778,10 @@ export const getLeavesByHr = async (db, userRole, hrDeptId) => {
             });
             completed++;
             
-            console.log(`[DB] Error case - Completed ${completed}/${deptLeaves.length} user lookups`);
+            
             
             if (completed === deptLeaves.length) {
-              console.log('[DB] All user lookups completed (with errors), sorting and resolving');
+              
               const sorted = enhancedLeaves.sort((a, b) => b.timestamp - a.timestamp);
               resolve(sorted);
             }
@@ -830,7 +801,7 @@ export const getLeavesByHr = async (db, userRole, hrDeptId) => {
     return [];
   }
   
-  console.log('[DB] getLeavesByHr final result:', leaves);
+  
   return leaves;
 };
 

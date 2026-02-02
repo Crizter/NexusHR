@@ -10,6 +10,8 @@ import {
     ROLES, 
     DEPARTMENTS 
 } from '../config.js';
+import { socketService } from "../services/socketService.js";
+
 
 // Authentication
 const userId = sessionStorage.getItem("userId");
@@ -19,16 +21,6 @@ const userDeptId = sessionStorage.getItem("deptId");
 
 
 
-// Add debugging for session values
-console.log('[DEBUG] Session Storage Values:', {
-    userId: userId,
-    userRole: userRole,
-    firstName: firstName,
-    userDeptId: userDeptId
-});
-
-console.log('[DEBUG] ROLES from config:', ROLES);
-console.log('[DEBUG] LEAVE_STATUS from config:', LEAVE_STATUS);
 
 
 
@@ -75,6 +67,7 @@ export const initLeavesModule = async () => {
         // setupRoleBasedControl();        
         populateDeptDropdown();
         await loadLeavesData();
+        socketService.connect() ; 
         setupEventListeners();
         setupFormHandlers();
 
@@ -84,6 +77,36 @@ export const initLeavesModule = async () => {
         showNotification('Failed to initialize leaves module', 'error');
     }
 };
+
+/**
+ * Connect to socket service 
+*/
+export const connectToSocket = (e) => { 
+    const [error] = tryCatchSync(() => { 
+        const data = e.detail ; 
+        switch(data.type) { 
+            case 'LEAVE_APPROVED' : 
+                showNotification('Leave request approved.'); 
+                loadLeavesData() ; 
+                break ; 
+            case 'LEAVE_REJECTED' : 
+                showNotification('Leave request rejected'); 
+                loadLeavesData() ; 
+                break ; 
+            case 'LEAVE_CANCELLED': 
+                showNotification('Leave request cancelled');
+                loadLeavesData() ; 
+                break;
+            default: 
+                console.log('Unknown socket event', data.type) ; 
+
+        }
+    }) ; 
+    if(error) { 
+        console.error(`Error intializing socket`,error) ; 
+    }
+}
+// LISTEN TO SOCKET 
 
 /**
  * Role-based access control setup
@@ -263,17 +286,6 @@ const generateActionButtons = (leave) => {
     const status = leave.status || LEAVE_STATUS.PENDING;
     let buttons = '';
 
-      // Add comprehensive debugging
-    console.log('[DEBUG] generateActionButtons called with:', {
-        userRole: userRole,
-        hrManagerRole: ROLES.hr_manager,
-        isHrManager: userRole === ROLES.hr_manager,
-        leaveStatus: status,
-        pendingStatus: LEAVE_STATUS.PENDING,
-        isPending: status === LEAVE_STATUS.PENDING,
-        leave: leave
-    });
-
     // HR Manager permissions: Approve/Reject pending leaves only
     if (userRole === ROLES.hr_manager && status === LEAVE_STATUS.PENDING) {
         buttons += `
@@ -313,7 +325,7 @@ const generateActionButtons = (leave) => {
             `;
         }
     }
-    console.log('[DEBUG] Final buttons HTML:', buttons);
+    
     return buttons;
 };
 
@@ -356,6 +368,8 @@ const setupEventListeners = () => {
             }
         });
     }
+    // listen for websocket 
+    window.addEventListener('socket-event', connectToSocket); 
 
     // Character counter for reason textarea
     const reasonTextarea = document.getElementById('leave-reason');
@@ -476,6 +490,19 @@ const processLeaveAction = async (action, leave, cardElement) => {
             hideCardLoadingState(cardElement);
             return;
         }
+        // send websocket message 
+        const socketMessage = { 
+            type: `LEAVE_${newStatus.toUpperCase()}`,
+            leaveId: leave.id,
+            employeeId: leave.employeeId,
+            employeeName: leave.employeeName || 'Unknown Employee',
+            newStatus: newStatus,
+            updatedBy: userId,
+            timestamp: Date.now()
+        } ; 
+        socketService.send('LEAVE_UPDATE',socketMessage) ; 
+        console.log(`Websocket sent message`) ; 
+
 
         // Update local data
         leave.status = newStatus;

@@ -74,13 +74,22 @@ app.get("/health", (req, res) => {
 wss.on("connection", (ws) => {
   console.log(" WebSocket client connected");
 
-  ws.on("message", (data) => {
-    const message = data.toString();
-    if (message === "PING") {
-      console.log(" Received PING, sending PONG");
-      ws.send("PONG");
+  ws.on("message", (rawMessage) => { 
+    try {
+
+      const data = JSON.parse(rawMessage.toString()); 
+      console.log('recievedc data',data) ; 
+      if(data.type && data.type.startsWith("LEAVE_")){
+        wss.clients.forEach((client) => { 
+          if(client.readyState === 1 && client != ws  ) { 
+            client.send(JSON.stringify(data)) ; 
+          }
+        }); 
+      }
+    } catch (error) {
+        console.error("Error processing message:", error.message);
     }
-  });
+  })
 
   ws.on("close", () => {
     console.log(" WebSocket client disconnected");
