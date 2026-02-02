@@ -14,10 +14,10 @@ let db ;
 
 // Department mapping
 const DEPARTMENTS = {
-    'Operations': { deptId: 'DEPT_001', deptName: 'Operations' },
-    'Tech': { deptId: 'DEPT_002', deptName: 'Tech' },
-    'Sales': { deptId: 'DEPT_003', deptName: 'Sales' },
-    'HR': { deptId: 'DEPT_004', deptName: 'HR' }
+    'Operations': { deptId: 'DEP-003', deptName: 'Operations' },
+    'Tech': { deptId: 'DEP-002', deptName: 'Tech' },
+    'Sales': { deptId: 'DEP-001', deptName: 'Sales' },
+    'Support': { deptId: 'DEP-004', deptName: 'Support' }
 };
 
 

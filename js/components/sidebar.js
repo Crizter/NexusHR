@@ -51,7 +51,7 @@ export const createSidebar = () => {
             label:'Leaves',
             icon: '',
             href: 'leaves.html',
-            roles: ['hr_manager','employess'],
+            roles: ['hr_manager','employee'],
         },
         
      

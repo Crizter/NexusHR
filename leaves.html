@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus HR - Leaves</title>
+     <link rel="stylesheet" href="styles/main.css">
+     <link rel="stylesheet" href="styles/leaves.css">
+    
+</head>
+<body>
+    <!-- PAGE HEADER  -->
+     <div class = "page-header">
+        <div class="header-content">
+            <h1>Leave Management</h1>
+            <p>Manage employee leave requests and applications </p>                       
+        </div>
+     </div>
+     <!-- main content  -->
+    <main class="leaves-main ">
+      <section class="leaves-main">
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-content">
+                    <h3 class="total-leaves-count">24</h3>
+                    <p>Total Leaves</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-content">
+                    <h3 class="total-leaves-count">24</h3>
+                    <p>Pending </p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-content">
+                    <h3 class="total-leaves-count">24</h3>
+                    <p>Approved </p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-content">
+                    <h3 class="total-leaves-count">24</h3>
+                    <p>Rejected</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- control bar  -->
+     <section class="control-bar">
+        <div class="filter-tabs">
+            <button class="tab-btn active " data-filter="all">All</button>
+            <button class="tab-btn " data-filter="pending">Pending</button>
+            <button class="tab-btn " data-filter="approved">Approved</button>
+            <button class="tab-btn " data-filter="rejected">Rejected</button>
+        </div>
+         <button class="btn-primary apply-leave-btn" id="apply-leave-btn">
+                <span class="btn-icon">➕</span>
+                Apply for Leave
+            </button>
+     </section>
+     <!-- leaves list container  -->
+      <section class="leaves-container">
+            <div class="leaves-list" id="leaves-list">
+                <!-- Sample Leave Card -->
+                <article class="leave-card" data-id="leave-001">
+                    <div class="leave-card-header">
+                        <div class="leave-dates">
+                            <span class="date-range">Feb 15 - Feb 17, 2026</span>
+                            <span class="leave-duration">3 days</span>
+                        </div>
+                        <div class="leave-type-badge sick-leave">Sick Leave</div>
+                    </div>
+                    
+                    <div class="leave-card-body">
+                        <div class="leave-reason">
+                            <h4>Reason:</h4>
+                            <p>Medical appointment and recovery time needed for minor surgery.</p>
+                        </div>
+                        <div class="leave-applicant">
+                            <span class="applicant-name">John Doe</span>
+                            <span class="applicant-department">Operations</span>
+                        </div>
+                    </div>
+                    
+                    <div class="leave-card-footer">
+                        <div class="status-badge pending">Pending</div>
+                        <div class="leave-actions">
+                            <button class="btn-action btn-approve hr-only" data-action="approve">
+                                <span class="action-icon">✓</span>
+                                Approve
+                            </button>
+                            <button class="btn-action btn-reject hr-only" data-action="reject">
+                                <span class="action-icon">✗</span>
+                                Reject
+                            </button>
+                            <button class="btn-action btn-cancel" data-action="cancel">
+                                <span class="action-icon">🗙</span>
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Additional Sample Cards -->
+                <article class="leave-card" data-id="leave-002">
+                    <div class="leave-card-header">
+                        <div class="leave-dates">
+                            <span class="date-range">Mar 1 - Mar 5, 2026</span>
+                            <span class="leave-duration">5 days</span>
+                        </div>
+                        <div class="leave-type-badge vacation">Vacation</div>
+                    </div>
+                    
+                    <div class="leave-card-body">
+                        <div class="leave-reason">
+                            <h4>Reason:</h4>
+                            <p>Family vacation to celebrate wedding anniversary.</p>
+                        </div>
+                        <div class="leave-applicant">
+                            <span class="applicant-name">Sarah Wilson</span>
+                            <span class="applicant-department">Tech</span>
+                        </div>
+                    </div>
+                    
+                    <div class="leave-card-footer">
+                        <div class="status-badge approved">Approved</div>
+                        <div class="leave-actions">
+                            <button class="btn-action btn-cancel" data-action="cancel">
+                                <span class="action-icon">🗙</span>
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="leave-card" data-id="leave-003">
+                    <div class="leave-card-header">
+                        <div class="leave-dates">
+                            <span class="date-range">Jan 20 - Jan 22, 2026</span>
+                            <span class="leave-duration">3 days</span>
+                        </div>
+                        <div class="leave-type-badge personal">Personal</div>
+                    </div>
+                    
+                    <div class="leave-card-body">
+                        <div class="leave-reason">
+                            <h4>Reason:</h4>
+                            <p>Personal matters requiring immediate attention.</p>
+                        </div>
+                        <div class="leave-applicant">
+                            <span class="applicant-name">Mike Chen</span>
+                            <span class="applicant-department">Sales</span>
+                        </div>
+                    </div>
+                    
+                    <div class="leave-card-footer">
+                        <div class="status-badge rejected">Rejected</div>
+                        <div class="leave-actions">
+                            <button class="btn-action btn-reapply" data-action="reapply">
+                                <span class="action-icon">↻</span>
+                                Reapply
+                            </button>
+                        </div>
+                    </div>
+                </article>
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" id="empty-state" style="display: none;">
+                <div class="empty-icon">📋</div>
+                <h3>No Leave Requests</h3>
+                <p>There are no leave requests matching your current filter.</p>
+            </div>
+        </section>
+    </main>
+    
+
+     <!-- LEAVE APPLICATION MODAL -->
+    <dialog class="modal" id="leave-application-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Apply for Leave</h2>
+                <button type="button" class="btn-close" id="close-leave-modal">&times;</button>
+            </div>
+            
+            <form id="leave-application-form" class="leave-form">
+                <div class="form-group">
+                    <label for="leave-type">Leave Type <span class="required">*</span></label>
+                    <select id="leave-type" name="leaveType" required>
+                        <option value="">Select leave type</option>
+                        <option value="sick">Sick Leave</option>
+                        <option value="casual">Casual Leave</option>
+                        <option value="optional">Optional Leave</option>
+                        <option value="nopay">No Pay Leave</option>                        
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="start-date">Start Date <span class="required">*</span></label>
+                        <input type="date" id="start-date" name="startDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="end-date">End Date <span class="required">*</span></label>
+                        <input type="date" id="end-date" name="endDate" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="leave-reason">Reason <span class="required">*</span></label>
+                    <textarea 
+                        id="leave-reason" 
+                        name="reason" 
+                        rows="4" 
+                        placeholder="Please provide a detailed reason for your leave request..."
+                        required    
+                    ></textarea>
+                    <div class="character-counter">
+                        <span id="reason-counter">0</span>/500 characters
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" id="cancel-leave-application">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        <span class="btn-icon">📤</span>
+                        Submit Application
+                    </button>
+                </div>
+            </form>
+        </div>
+    </dialog>
+
+</body>
+
+<script type="module" src="js/features/leaves.js"></script>
+</html>
