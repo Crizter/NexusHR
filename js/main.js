@@ -1,5 +1,5 @@
 
-import { connectToDb, seedDatabase, getAllEmployees, updateEmployee, getEmployeeById, updateSyncQueue , addUserCredentials} from "./core/db.js";
+import { connectToDb, seedDatabase, getAllEmployees,updateCounter, updateEmployee, getEmployeeById, updateSyncQueue , addUserCredentials} from "./core/db.js";
 import { handleEmployeeUpdate, syncManager } from "./core/sync.js";
 import { checkLoggedin } from "./auth/auth-service.js";
 import { generateUUID } from "./utils/crypto.js";
@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded',async (event) => {
 
 }) ;
 
+
 // render the users in directory 
 const renderUsers = (users) => { 
     const tbody = document.getElementById('employee-list') ; 
@@ -87,7 +88,7 @@ const renderUsers = (users) => {
         // const departmentName = user.department.deptName || 'N/A'; 
         const departmentName = user?.department?.deptName ; 
        row.innerHTML = `
-            <td class="employee-id">${user.id}</td>
+            <td class="employee-id">${user.displayId || user.id} </td>
             <td class="employee-name">${user.identity.firstName} ${user.identity.lastName}</td>
             <td><span class="role-badge ${user.role}">${user.role.replace('_', ' ')}</span></td>
              <td class="department">${departmentName}</td>
@@ -180,10 +181,13 @@ document.getElementById('edit-form').addEventListener('submit', async (e) => {
 
 document.getElementById('add-form').addEventListener('submit', async(e) => { 
     e.preventDefault() ; 
+    const nextSequence = await updateCounter(db,"employee_counter") ; 
+    
 
     // const id = document.getElementById('edit-id').value ; 
     const currentUserRole = sessionStorage.getItem('role') ;
     const employeeId =  generateUUID() ; 
+    const displayId = `POS-${nextSequence}`;
     const selectedDeptName = document.getElementById('add-dept').value ; 
     const deptObj = DEPARTMENTS[selectedDeptName]; 
     const userPassword = document.getElementById('add-password').value ; 
@@ -195,6 +199,7 @@ document.getElementById('add-form').addEventListener('submit', async(e) => {
         }
        const newEmployee = {
         id: employeeId,
+        displayId: displayId,
         role: document.getElementById('add-role').value,
         department: deptObj, // Use department object
         email: email,
@@ -230,4 +235,4 @@ document.getElementById('add-form').addEventListener('submit', async(e) => {
          console.error('Failed to add employee', error);
         alert(error.message || 'Failed to add the employee');
     }
-})
+});
