@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // 4. Connect to Real-Time Feed (SSE)
         initSSE();
-        initHeartbeat();
+        
         initHealthMonitor();
     } catch (error) {
         console.error('Failed to initialize attendance:', error);
@@ -262,60 +262,6 @@ function initSSE() {
         statusText.innerText = "Offline";
     }
 };
-
-function initHeartbeat() {
-    const statusDot = document.querySelector('#network-status .status-dot');
-    const wsLatencyElement = document.getElementById('ws-latency');
-    
-    try {
-        // Connect to WebSocket on the same port as your server
-        ws = new WebSocket(`ws://localhost:3001`);
-        
-        ws.onopen = () => {
-            console.log(" WebSocket Connected");
-            statusDot.style.background = "#22c55e"; // Green
-            
-            // Start heartbeat loop - every 30 seconds
-            heartbeatInterval = setInterval(() => {
-                if (ws.readyState === WebSocket.OPEN) {
-                    pingStartTime = performance.now();
-                    ws.send("PING");
-                }
-            }, 30000);
-        };
-        
-        ws.onmessage = (event) => {
-            if (event.data === "PONG") {
-                const latency = Math.round(performance.now() - pingStartTime);
-                wsLatencyElement.textContent = `${latency} ms`;
-                console.log(` WebSocket Latency: ${latency}ms`);
-            }
-        };
-        
-        ws.onclose = () => {
-            console.log(" WebSocket Disconnected");
-            statusDot.style.background = "#ef4444"; // Red
-            wsLatencyElement.textContent = "OFF";
-            
-            // Clear heartbeat interval
-            if (heartbeatInterval) {
-                clearInterval(heartbeatInterval);
-            }
-        };
-        
-        ws.onerror = (error) => {
-            console.error(" WebSocket Error:", error);
-            statusDot.style.background = "#ef4444"; // Red
-            wsLatencyElement.textContent = "OFF";
-        };
-        
-    } catch (error) {
-        console.error("Failed to initialize WebSocket:", error);
-        statusDot.style.background = "#ef4444";
-        wsLatencyElement.textContent = "OFF";
-    }
-}
-
 
 
 function initHealthMonitor() {
