@@ -43,7 +43,7 @@ export const syncManager = (db) => {
                         // Then add credentials
                         await addUserCredentials(db, task.data.credentials, currentUserRole);
                     }
-
+                    
                     
                     // Delete from Queue
                     const deleteTx = db.transaction(['syncQueue'], 'readwrite');

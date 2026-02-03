@@ -5,8 +5,7 @@ import { SERVER_PORT,SERVER_URL } from '../config.js';
 let db;
 let currentUser;
 let timerInterval;
-let ws ; 
-let pingStartTime;
+let evtSource ; 
 let heartbeatInterval;
 let healthMonitorInterval;
 
@@ -220,7 +219,7 @@ function initSSE() {
     const statusText = document.querySelector('#network-status .status-text');
     
     try {
-        const evtSource = new EventSource(`${SERVER_URL}${SERVER_PORT}/events`);
+         evtSource = new EventSource(`${SERVER_URL}${SERVER_PORT}/events`);
 
         evtSource.onopen = () => {
             console.log("SSE Connected");
@@ -323,8 +322,9 @@ function cleanupDiagnostics(){
     if(healthMonitorInterval){
         clearInterval(healthMonitorInterval);
     }
-    if(ws && ws.readyState === WebSocket.OPEN){
-        ws.close();
+   if(evtSource) {
+        evtSource.close();
+        console.log("SSE Connection closed");
     }
 } ; 
 
