@@ -5,7 +5,6 @@ import { checkLoggedin } from "./auth/auth-service.js";
 import { generateUUID } from "./utils/crypto.js";
 import { initSidebar } from "./components/sidebar.js";
 
-
 const activeUser = sessionStorage.getItem('userId') ; 
 checkLoggedin(activeUser) ; 
 
@@ -28,6 +27,7 @@ document.addEventListener('DOMContentLoaded',async (event) => {
     console.log('Dom content loaded') ; 
     try {
         initSidebar() ; 
+       
         db = await connectToDb() ; 
         await seedDatabase(db) ; 
         syncManager(db) ; 
@@ -85,7 +85,7 @@ const renderUsers = (users) => {
         // }
         const row = document.createElement('tr'); 
         row.className = 'employee-row';
-        // const departmentName = user.department.deptName || 'N/A'; 
+        
         const departmentName = user?.department?.deptName ; 
        row.innerHTML = `
             <td class="employee-id">${user.displayId || user.id} </td>

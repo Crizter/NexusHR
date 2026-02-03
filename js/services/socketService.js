@@ -44,8 +44,13 @@ class SocketService {
     // send the paylaod 
     send(type,  payload = {}) { 
         if(this.socket && this.socket.readyState === WebSocket.OPEN){
-            const message = JSON.stringify(payload) ;
+            const message = JSON.stringify({
+                type:type,
+                ...payload
+            }) ;
              this.socket.send(message) ; 
+        } else{
+            console.warn(`Websocket not connected`);
         }
     } ;
 
