@@ -18,6 +18,11 @@
     /* Borders & Dividers */
     --border-color: rgba(51, 65, 85, 0.5);
     --card-border: rgba(71, 85, 105, 0.3);
+    
+    /* Status Colors */
+    --error-color: rgb(239, 68, 68);
+    --success-color: rgb(34, 197, 94);
+    --warning-color: rgb(245, 158, 11);
 }
 
 * {
@@ -44,19 +49,21 @@ h1 {
     color: var(--accent-color);
 }
 
-/* Table Styling */
+/* Responsive Table Container */
 .table-container {
     background-color: var(--secondary-background-color);
     border-radius: 0.75rem;
     border: 1px solid var(--card-border);
-    overflow: hidden;
+    overflow-x: auto; /* Enable horizontal scrolling */
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
 }
 
 .employee-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.875rem;
+    min-width: 800px; /* Minimum width for table content */
 }
 
 .employee-table thead {
@@ -72,12 +79,14 @@ h1 {
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    white-space: nowrap; /* Prevent header text wrapping */
 }
 
 .employee-table td {
     padding: 1rem 0.75rem;
     border-bottom: 1px solid var(--border-color);
     color: var(--text-secondary);
+    white-space: nowrap; /* Prevent cell content wrapping */
 }
 
 .employee-row:hover {
@@ -92,11 +101,13 @@ h1 {
     font-family: 'Monaco', 'Menlo', monospace;
     font-weight: 600;
     color: var(--text-primary);
+    min-width: 100px;
 }
 
 .employee-name {
     font-weight: 600;
     color: var(--text-primary);
+    min-width: 150px;
 }
 
 .role-badge {
@@ -105,6 +116,7 @@ h1 {
     font-size: 0.75rem;
     font-weight: 500;
     text-transform: uppercase;
+    display: inline-block;
 }
 
 .role-badge.hr_manager {
@@ -124,14 +136,20 @@ h1 {
 
 .department {
     color: var(--text-primary);
+    min-width: 120px;
 }
 
 .email {
     color: var(--accent-color);
+    min-width: 200px;
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .contact {
     font-family: 'Monaco', 'Menlo', monospace;
+    min-width: 120px;
 }
 
 .status {
@@ -140,6 +158,7 @@ h1 {
     font-size: 0.75rem;
     font-weight: 500;
     text-transform: capitalize;
+    display: inline-block;
 }
 
 .status.active {
@@ -152,9 +171,13 @@ h1 {
     color: rgb(239, 68, 68);
 }
 
+/* Actions column */
 .actions {
     display: flex;
     gap: 0.5rem;
+    align-items: center;
+    min-width: 200px;
+    flex-wrap: nowrap;
 }
 
 .btn {
@@ -165,6 +188,7 @@ h1 {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    white-space: nowrap;
 }
 
 .btn-view {
@@ -185,13 +209,6 @@ h1 {
 .btn-edit:hover {
     background-color: var(--surface-color);
     color: var(--text-primary);
-}
-
-.no-data {
-    text-align: center;
-    color: var(--text-muted);
-    padding: 2rem;
-    font-style: italic;
 }
 
 /* Delete button styles - red theme */
@@ -227,27 +244,6 @@ h1 {
     font-size: 0.85rem;
 }
 
-/* Action buttons container */
-.actions {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-}
-
-/* Ensure buttons don't wrap on smaller screens */
-@media (max-width: 768px) {
-    .actions {
-        flex-direction: column;
-        gap: 0.25rem;
-    }
-    
-    .btn-edit,
-    .btn-delete {
-        width: 100%;
-        margin-right: 0;
-    }
-}
-
 .no-data {
     text-align: center;
     color: var(--text-muted);
@@ -255,41 +251,121 @@ h1 {
     font-style: italic;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    body {
-        padding: 1rem;
-    }
-    
+/* Responsive Design - Mobile First */
+@media (max-width: 1200px) {
     .employee-table {
-        font-size: 0.75rem;
+        font-size: 0.8rem;
     }
     
     .employee-table th,
     .employee-table td {
         padding: 0.75rem 0.5rem;
     }
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 1rem;
+    }
+    
+    .table-container {
+        border-radius: 0.5rem;
+        margin: 0 -1rem;
+        border-left: none;
+        border-right: none;
+    }
+    
+    .employee-table {
+        font-size: 0.75rem;
+        min-width: 600px; /* Reduce minimum width for mobile */
+    }
+    
+    .employee-table th,
+    .employee-table td {
+        padding: 0.5rem 0.375rem;
+    }
     
     .actions {
+        min-width: 150px;
         flex-direction: column;
         gap: 0.25rem;
     }
     
     .btn {
+        font-size: 0.65rem;
         padding: 0.25rem 0.5rem;
+        width: 100%;
+    }
+    
+    h1 {
+        font-size: 1.75rem;
+        margin-bottom: 1rem;
     }
 }
 
 @media (max-width: 640px) {
     .employee-table {
-        display: block;
-        overflow-x: auto;
-        white-space: nowrap;
+        font-size: 0.7rem;
+        min-width: 500px;
+    }
+    
+    /* Hide less important columns on very small screens */
+    .employee-table .contact,
+    .employee-table th:nth-child(6),
+    .employee-table td:nth-child(6) {
+        display: none;
+    }
+    
+    .email {
+        max-width: 120px;
     }
 }
 
-/* MODAL STYLING  */
+@media (max-width: 480px) {
+    body {
+        padding: 0.5rem;
+    }
+    
+    .table-container {
+        margin: 0 -0.5rem;
+    }
+    
+    /* Show even fewer columns on very small screens */
+    .employee-table .department,
+    .employee-table th:nth-child(4),
+    .employee-table td:nth-child(4) {
+        display: none;
+    }
+    
+    .employee-table {
+        min-width: 400px;
+    }
+}
 
+/* Horizontal scroll indicator */
+.table-container::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(45deg, transparent 50%, var(--accent-color) 50%);
+    opacity: 0.5;
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .table-container {
+        position: relative;
+    }
+    
+    .table-container::after {
+        display: block;
+    }
+}
+
+/* MODAL STYLING WITH VALIDATION */
 .modal {
     border: none;
     border-radius: 0.5rem;
@@ -332,19 +408,22 @@ h1 {
     cursor: pointer;
     padding: 0.25rem;
     line-height: 1;
+    border-radius: 0.25rem;
 }
 
 .btn-close:hover {
     color: var(--text-primary);
+    background-color: var(--surface-color);
 }
 
-/* Form Styling */
-#edit-form {
+/* Form Styling with Validation */
+#edit-form, #add-form {
     padding: 1.5rem;
 }
 
 .form-group {
     margin-bottom: 1rem;
+    position: relative;
 }
 
 .form-group label {
@@ -355,15 +434,21 @@ h1 {
     font-size: 0.875rem;
 }
 
+.form-group label.required::after {
+    content: " *";
+    color: var(--error-color);
+}
+
 .form-group input,
 .form-group select {
     width: 100%;
     padding: 0.75rem;
-    border: 1px solid var(--border-color);
+    border: 2px solid var(--border-color);
     border-radius: 0.375rem;
     background-color: var(--primary-background-color);
     color: var(--text-primary);
     font-size: 0.875rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .form-group input:focus,
@@ -371,6 +456,93 @@ h1 {
     outline: none;
     border-color: var(--accent-color);
     box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+}
+
+/* Validation States */
+.form-group.error input,
+.form-group.error select {
+    border-color: var(--error-color);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.form-group.success input,
+.form-group.success select {
+    border-color: var(--success-color);
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+/* Error and Success Messages */
+.error-message {
+    color: var(--error-color);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    display: block;
+    line-height: 1.4;
+}
+
+.success-message {
+    color: var(--success-color);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+/* Validation Icons */
+.form-group.error::after {
+    content: "❌";
+    position: absolute;
+    right: 0.75rem;
+    top: 2.25rem;
+    pointer-events: none;
+}
+
+.form-group.success::after {
+    content: "✅";
+    position: absolute;
+    right: 0.75rem;
+    top: 2.25rem;
+    pointer-events: none;
+}
+
+/* Password Strength Indicator */
+.password-strength {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+}
+
+.password-strength-bar {
+    width: 100%;
+    height: 4px;
+    background-color: var(--border-color);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 0.25rem;
+}
+
+.password-strength-fill {
+    height: 100%;
+    transition: all 0.3s ease;
+    border-radius: 2px;
+}
+
+.password-strength.weak .password-strength-fill {
+    width: 25%;
+    background-color: var(--error-color);
+}
+
+.password-strength.medium .password-strength-fill {
+    width: 50%;
+    background-color: var(--warning-color);
+}
+
+.password-strength.strong .password-strength-fill {
+    width: 75%;
+    background-color: var(--success-color);
+}
+
+.password-strength.very-strong .password-strength-fill {
+    width: 100%;
+    background-color: var(--success-color);
 }
 
 /* Modal Actions */
@@ -392,6 +564,7 @@ h1 {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    position: relative;
 }
 
 .btn-cancel {
@@ -409,23 +582,53 @@ h1 {
     color: var(--primary-background-color);
 }
 
-.btn-save:hover {
+.btn-save:hover:not(:disabled) {
     background-color: var(--accent-hover);
+}
+
+.btn-save:disabled {
+    background-color: var(--border-color);
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+
+/* Loading state for buttons */
+.btn-save.loading::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* Responsive Modal */
 @media (max-width: 480px) {
     .modal {
         width: 95vw;
+        max-width: none;
     }
     
     .modal-header,
-    #edit-form {
+    #edit-form,
+    #add-form {
         padding: 1rem;
     }
     
     .modal-actions {
         flex-direction: column;
+        gap: 0.5rem;
     }
     
     .btn-cancel,
@@ -434,11 +637,14 @@ h1 {
     }
 }
 
+/* Header section for pages with Add button */
 .header-section {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
 .header-section h1 {
@@ -472,186 +678,43 @@ h1 {
     transform: translateY(0);
 }
 
-.btn-icon {
-    font-size: 1.125rem;
-    font-weight: bold;
-    line-height: 1;
-}
-
-/* Responsive Header */
-@media (max-width: 768px) {
-    .header-section {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-    
-    .btn-primary {
-        align-self: stretch;
-        justify-content: center;
-    }
-}
-
-@media (max-width: 480px) {
-    .header-section {
-        margin-bottom: 1.5rem;
-    }
-    
-    .btn-primary {
-        padding: 0.75rem 1.25rem;
-        font-size: 0.8125rem;
-    }
-}
-
-
-/* Add Employee Modal Styling */
-
-/* Add Form Styling (same as edit form) */
-#add-form {
-    padding: 1.5rem;
-}
-
-#add-form .form-group {
-    margin-bottom: 1rem;
-}
-
-#add-form .form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: var(--text-primary);
-    font-size: 0.875rem;
-}
-
-#add-form .form-group input,
-#add-form .form-group select {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid var(--border-color);
-    border-radius: 0.375rem;
-    background-color: var(--primary-background-color);
-    color: var(--text-primary);
-    font-size: 0.875rem;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-#add-form .form-group input:focus,
-#add-form .form-group select:focus {
-    outline: none;
-    border-color: var(--accent-color);
-    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
-}
-
-/* Placeholder styling for add form */
-#add-form .form-group input::placeholder {
-    color: var(--text-muted);
-}
-
-/* Required field indicator */
-#add-form .form-group label[data-required]::after {
-    content: " *";
-    color: rgb(239, 68, 68);
-}
-
-/* Form validation states */
-#add-form .form-group.error input,
-#add-form .form-group.error select {
-    border-color: rgb(239, 68, 68);
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-}
-
-#add-form .form-group.success input,
-#add-form .form-group.success select {
-    border-color: rgb(34, 197, 94);
-    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
-}
-
-/* Error message styling */
-.error-message {
-    color: rgb(239, 68, 68);
-    font-size: 0.75rem;
-    margin-top: 0.25rem;
-    display: block;
-}
-
-/* Add Modal specific responsive adjustments */
-@media (max-width: 480px) {
-    #add-form {
-        padding: 1rem;
-    }
-    
-    #add-form .form-group input,
-    #add-form .form-group select {
-        padding: 0.625rem;
-        font-size: 0.8125rem;
-    }
-}
-
-/* Loading state for add button */
-.btn-save.loading {
-    position: relative;
-    color: transparent;
-    pointer-events: none;
-}
-
-.btn-save.loading::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 1rem;
-    height: 1rem;
-    border: 2px solid transparent;
-    border-top: 2px solid var(--primary-background-color);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: translate(-50%, -50%) rotate(360deg);
-    }
-}
-
-
-
 /* Page header for pages with sidebar */
 .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    padding-top: 1rem;
+    background-color: var(--secondary-background-color);
+    padding: 2rem;
+    margin: -2rem -2rem 2rem -2rem;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .page-header h1 {
     margin-bottom: 0;
-    color: var(--accent-color);
 }
 
 /* Adjust body padding when sidebar is present */
 body.has-sidebar {
     padding-left: 0;
-    padding-right: 2rem;
-    padding-top: 2rem;
-    padding-bottom: 2rem;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
 }
 
-/* Mobile adjustments */
+/* Mobile adjustments for sidebar layout */
 @media (max-width: 768px) {
     body.has-sidebar {
-        padding-left: 2rem;
+        padding: 1rem;
     }
     
     .page-header {
+        margin: -1rem -1rem 1rem -1rem;
+        padding: 1rem;
+    }
+    
+    .header-section {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
+        align-items: stretch;
+        text-align: center;
     }
     
     .btn-primary {
-        align-self: stretch;
         justify-content: center;
     }
 }
