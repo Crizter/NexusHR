@@ -83,37 +83,109 @@ export const initLeavesModule = async () => {
 */
 export const connectToSocket = (e) => { 
     const [error] = tryCatchSync(() => { 
-        const data = e.detail ; 
+        const data = e.detail;
+        console.log('WebSocket event received:', data);
+        
         switch(data.type) { 
-            case 'LEAVE_APPROVED' : 
-                showNotification('Leave request approved.'); 
-                loadLeavesData() ; 
-                break ; 
-            case 'LEAVE_REJECTED' : 
-                showNotification('Leave request rejected'); 
-                loadLeavesData() ; 
-                break ; 
-            case 'LEAVE_CANCELLED': 
-                showNotification('Leave request cancelled');
-                loadLeavesData() ; 
+            case 'LEAVE_APPLIED':
+                // Only HR should see new leave applications from other employees
+                if (userRole === ROLES.hr_manager && data.employeeId !== userId && data.deptId === userDeptId) {
+                    handleNewLeaveApplication(data);
+                }
                 break;
+                
+            case 'LEAVE_APPROVED':
+            case 'LEAVE_REJECTED': 
+            case 'LEAVE_CANCELLED':
+                // All relevant users should see status updates
+                if (data.employeeId === userId || (userRole === ROLES.hr_manager && data.deptId === userDeptId)) {
+                    handleLeaveStatusUpdate(data);
+                }
+                break;
+                
             default: 
-                console.log('Unknown socket event', data.type) ; 
-
+                console.log('Unhandled socket event type:', data.type);
         }
-    }) ; 
+    }); 
+    
     if(error) { 
-        console.error(`Error intializing socket`,error) ; 
+        console.error(`Error handling socket event:`, error); 
     }
 }
-// LISTEN TO SOCKET 
+
+const handleNewLeaveApplication = (data) => {
+    // Create leave object from socket data
+    const newLeave = {
+        id: data.leaveId,
+        employeeId: data.employeeId,
+        employeeName: data.employeeName,
+        type: data.leaveType,
+        deptId: data.deptId,
+        deptName: data.deptName,
+        reason: data.reason,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        status: data.status,
+        timestamp: data.timestamp
+    };
+
+    // Add to allLeaves array
+    allLeaves.unshift(newLeave);
+
+    // Create and add card to UI
+    const newCard = createLeaveCard(newLeave);
+    if (newCard) {
+        leavesListContainer.insertBefore(newCard, leavesListContainer.firstChild);
+        
+        // Add highlight animation
+        newCard.style.animation = 'slideInFromTop 0.3s ease-out';
+        
+        // Update stats
+        updateStatsBar(allLeaves);
+        
+        // Show notification
+        showNotification(`New leave application from ${data.employeeName}`, 'info');
+        
+        console.log('Added new leave application from WebSocket:', newLeave);
+    }
+};
 
 /**
- * Role-based access control setup
+ * Handle leave status update from WebSocket
  */
-const setupRoleBasedControl = () => {
-   
+const handleLeaveStatusUpdate = (data) => {
+    // Find the existing card
+    const existingCard = document.querySelector(`[data-id="${data.leaveId}"]`);
+    if (existingCard) {
+        // Update the leave object
+        const existingLeave = leaveMetadata.get(existingCard);
+        if (existingLeave) {
+            existingLeave.status = data.newStatus;
+            leaveMetadata.set(existingCard, existingLeave);
+            
+            // Update card UI
+            updateCardStatus(existingCard, data.newStatus);
+            
+            // Update allLeaves array
+            const leaveIndex = allLeaves.findIndex(l => l.id === data.leaveId);
+            if (leaveIndex !== -1) {
+                allLeaves[leaveIndex].status = data.newStatus;
+            }
+            
+            // Update stats
+            updateStatsBar(allLeaves);
+            
+            // Show notification if this is not the user who made the change
+            if (data.updatedBy !== userId) {
+                const statusText = getStatusDisplay(data.newStatus);
+                showNotification(`Leave ${statusText.toLowerCase()} by ${data.updatedByRole}`, 'info');
+            }
+            
+            console.log('Updated leave status from WebSocket:', data);
+        }
+    }
 };
+
 
 /**
  * Populate department dropdown from config
@@ -491,16 +563,19 @@ const processLeaveAction = async (action, leave, cardElement) => {
             return;
         }
         // send websocket message 
-        const socketMessage = { 
-            type: `LEAVE_${newStatus.toUpperCase()}`,
+         const socketMessage = { 
             leaveId: leave.id,
             employeeId: leave.employeeId,
-            employeeName: leave.employeeName || 'Unknown Employee',
+            employeeName: leave.employeeName || firstName,
+            deptId: leave.deptId,
+            deptName: leave.deptName,
             newStatus: newStatus,
             updatedBy: userId,
+            updatedByRole: userRole,
             timestamp: Date.now()
-        } ; 
-        socketService.send('LEAVE_UPDATE',socketMessage) ; 
+        }; 
+        
+        socketService.send(`LEAVE_${newStatus.toUpperCase()}`, socketMessage);
         console.log(`Websocket sent message`) ; 
 
 
@@ -647,6 +722,24 @@ const handleLeaveFormSubmit = async (e) => {
         
         // Add to allLeaves array
         allLeaves.unshift(optimisticLeave);
+
+            // Send WebSocket message for new leave application
+        const socketMessage = { 
+            type: 'LEAVE_APPLIED',
+            leaveId: leaveData.id,
+            employeeId: userId,
+            employeeName: firstName,
+            deptId: userDeptId,
+            deptName: leaveData.deptName,
+            leaveType: leaveData.type,
+            startDate: leaveData.startDate,
+            endDate: leaveData.endDate,
+            reason: leaveData.reason,
+            status: LEAVE_STATUS.PENDING,
+            timestamp: Date.now()
+        };
+        socketService.send('LEAVE_APPLIED', socketMessage);
+
         
         showNotification('Leave application submitted successfully', 'success');
         updateStatsBar(allLeaves);
