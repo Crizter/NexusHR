@@ -1015,3 +1015,4 @@ const mapFormTypeToConfig = (formType) => {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', initLeavesModule);    
+

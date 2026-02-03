@@ -230,6 +230,163 @@ export const getEmployeeById = async (db, id) => {
   });
 };
 
+export const deleteEmployee = async (db, currentUserRole, employeeId) => {
+  // Check permissions - only HR managers can delete employees
+  if (!checkPermission(currentUserRole, PERMISSIONS.EDIT_RECORD)) {
+    throw new Error("Access Denied: You do not have permission to delete employees.");
+  }
+
+  return new Promise(async (resolve, reject) => {
+    try {
+      const transaction = db.transaction(["users", "credentials"], "readwrite");
+      const userStore = transaction.objectStore("users");
+      const credentialsStore = transaction.objectStore("credentials");
+
+      // First, get the employee to verify they exist and get their email
+      const getEmployeeRequest = userStore.get(employeeId);
+      
+      getEmployeeRequest.onsuccess = () => {
+        const employee = getEmployeeRequest.result;
+        
+        if (!employee) {
+          reject(new Error("Employee not found"));
+          return;
+        }
+
+        if (employee.isDeleted) {
+          reject(new Error("Employee is already deleted"));
+          return;
+        }
+
+        // Prevent deletion of current user (self-deletion)
+        const currentUserId = sessionStorage.getItem('userId');
+        if (employee.id === currentUserId) {
+          reject(new Error("You cannot delete your own account"));
+          return;
+        }
+
+        // Soft delete: Mark employee as deleted instead of hard deletion
+        const updatedEmployee = {
+          ...employee,
+          isDeleted: true,
+          deletedAt: Date.now(),
+          deletedBy: currentUserId,
+          lastUpdated: Date.now()
+        };
+
+        // Update employee record
+        const updateEmployeeRequest = userStore.put(updatedEmployee);
+        
+        updateEmployeeRequest.onsuccess = () => {
+          // Also delete their credentials
+          const deleteCredentialsRequest = credentialsStore.delete(employee.email);
+          
+          deleteCredentialsRequest.onsuccess = () => {
+            console.log(`[DB] Employee ${employee.identity.firstName} ${employee.identity.lastName} deleted successfully`);
+            resolve({
+              success: true,
+              message: "Employee deleted successfully",
+              deletedEmployee: {
+                id: employee.id,
+                name: `${employee.identity.firstName} ${employee.identity.lastName}`,
+                email: employee.email
+              }
+            });
+          };
+          
+          deleteCredentialsRequest.onerror = (e) => {
+            console.warn("[DB] Failed to delete credentials, but employee marked as deleted");
+            resolve({
+              success: true,
+              message: "Employee deleted successfully (credentials cleanup failed)",
+              deletedEmployee: {
+                id: employee.id,
+                name: `${employee.identity.firstName} ${employee.identity.lastName}`,
+                email: employee.email
+              }
+            });
+          };
+        };
+        
+        updateEmployeeRequest.onerror = (e) => {
+          console.error("[DB] Failed to delete employee:", e.target.error);
+          reject(new Error(`Failed to delete employee: ${e.target.error.message}`));
+        };
+      };
+      
+      getEmployeeRequest.onerror = (e) => {
+        console.error("[DB] Error fetching employee for deletion:", e.target.error);
+        reject(new Error(`Failed to fetch employee: ${e.target.error.message}`));
+      };
+      
+    } catch (error) {
+      console.error("[DB] Delete employee transaction error:", error);
+      reject(error);
+    }
+  });
+};
+
+// Optional: Hard delete function (permanently removes from database)
+export const permanentlyDeleteEmployee = async (db, currentUserRole, employeeId) => {
+  // Only super admin should have this permission
+  if (currentUserRole !== 'superadmin') {
+    throw new Error("Access Denied: Only super admin can permanently delete employees.");
+  }
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(["users", "credentials"], "readwrite");
+    const userStore = transaction.objectStore("users");
+    const credentialsStore = transaction.objectStore("credentials");
+
+    // Get employee first to get their email
+    const getEmployeeRequest = userStore.get(employeeId);
+    
+    getEmployeeRequest.onsuccess = () => {
+      const employee = getEmployeeRequest.result;
+      
+      if (!employee) {
+        reject(new Error("Employee not found"));
+        return;
+      }
+
+      // Delete employee record
+      const deleteEmployeeRequest = userStore.delete(employeeId);
+      
+      deleteEmployeeRequest.onsuccess = () => {
+        // Delete credentials
+        const deleteCredentialsRequest = credentialsStore.delete(employee.email);
+        
+        deleteCredentialsRequest.onsuccess = () => {
+          resolve({
+            success: true,
+            message: "Employee permanently deleted",
+            deletedEmployee: {
+              id: employee.id,
+              name: `${employee.identity.firstName} ${employee.identity.lastName}`,
+              email: employee.email
+            }
+          });
+        };
+        
+        deleteCredentialsRequest.onerror = (e) => {
+          reject(new Error(`Failed to delete credentials: ${e.target.error.message}`));
+        };
+      };
+      
+      deleteEmployeeRequest.onerror = (e) => {
+        reject(new Error(`Failed to delete employee: ${e.target.error.message}`));
+      };
+    };
+    
+    getEmployeeRequest.onerror = (e) => {
+      reject(new Error(`Failed to fetch employee: ${e.target.error.message}`));
+    };
+  });
+};
+
+
+
+
 export const addUserCredentials = async (
   db,
   credentialsData,

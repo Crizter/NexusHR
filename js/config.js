@@ -5,11 +5,11 @@ export const SERVER_PORT=`3001`
 export const SERVER_URL=`http://localhost:` ; 
 
 // hr portal roles for role based access control 
-export  const ROLES = {
+export  const ROLES = Object.freeze({
     super_admin: "super_admin", 
     hr_manager: "hr_manager", 
     employee : 'employee', 
-} ; 
+}) ; 
 
 // create a structure for permissions 
 export const PERMISSIONS =Object.freeze( { 

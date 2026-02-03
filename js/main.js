@@ -1,9 +1,10 @@
 
-import { connectToDb, seedDatabase, getAllEmployees,updateCounter, updateEmployee, getEmployeeById, updateSyncQueue , addUserCredentials} from "./core/db.js";
+import { connectToDb, seedDatabase, getAllEmployees,updateCounter, updateEmployee, getEmployeeById, updateSyncQueue , addUserCredentials,deleteEmployee} from "./core/db.js";
 import { handleEmployeeUpdate, syncManager } from "./core/sync.js";
 import { checkLoggedin } from "./auth/auth-service.js";
 import { generateUUID } from "./utils/crypto.js";
 import { initSidebar } from "./components/sidebar.js";
+import { tryCatchAsync } from "./utils/tryCatch.js";
 
 const activeUser = sessionStorage.getItem('userId') ; 
 checkLoggedin(activeUser) ; 
@@ -66,32 +67,39 @@ const renderUsers = (users) => {
     const currentUserRole = sessionStorage.getItem('role') ; // hr_manager, superadmin, employee 
 
     // fragment for avoiding page reflow 
-
-     const fragment = document.createDocumentFragment(); 
+    const fragment = document.createDocumentFragment(); 
 
     users.forEach(user => {
         if (user.isDeleted) { 
             return; 
         }
-        let actionButtons = `<button class="btn btn-view" data-action="view" data-id="${user.id}">View</button>`
-        if(currentUserRole === `hr_manager`){
-            actionButtons += `
-                <button class="btn btn-edit" data-action="edit" data-id="${user.id}">Edit</button>
+        
+        // Build action buttons based on role - FIXED: Initialize as empty string
+        let actionButtons = '';
+        
+        if(currentUserRole === 'hr_manager'){
+            actionButtons = `
+                <button class="btn btn-edit" data-action="edit" data-id="${user.id}" title="Edit Employee">
+                    <span class="btn-icon">✏️</span> Edit
+                </button>
+                <button class="btn btn-delete" data-action="delete" data-id="${user.id}" title="Delete Employee">
+                    <span class="btn-icon">🗑️</span> Delete
+                </button>
             `;
+        } else {
+            // Regular employees see no action buttons
+            actionButtons = '<span class="no-actions">No actions available</span>';
         }
-        // else {
-        //     // Regular employees see nothing else, or a lock icon
-        //     actionButtons += `<span class="locked-icon"></span>`;
-        // }
+        
         const row = document.createElement('tr'); 
         row.className = 'employee-row';
         
         const departmentName = user?.department?.deptName ; 
-       row.innerHTML = `
+        row.innerHTML = `
             <td class="employee-id">${user.displayId || user.id} </td>
             <td class="employee-name">${user.identity.firstName} ${user.identity.lastName}</td>
             <td><span class="role-badge ${user.role}">${user.role.replace('_', ' ')}</span></td>
-             <td class="department">${departmentName}</td>
+            <td class="department">${departmentName}</td>
             <td class="email">${user.email}</td>
             <td class="contact">${user.identity.contactNumber || 'N/A'}</td>
             <td><span class="status ${user.attendance.status}">${user.attendance.status}</span></td>
@@ -106,26 +114,42 @@ const renderUsers = (users) => {
     tbody.appendChild(fragment); 
 }
 
+const handleDeleteEmployee = async (employeeId) => {
+    console.log('Delete employee function called for ID:', employeeId);
+    
+    const currentUserRole = sessionStorage.getItem('role');
+    
+    try {
+        const result = await deleteEmployee(db, currentUserRole, employeeId);
+        console.log('Delete result:', result);
+        return result;
+    } catch (error) {
+        console.error('Error deleting employee:', error);
+        throw error;
+    }
+};
+
+
 // event delegation 
 document.getElementById('employee-list').addEventListener('click', async(event) => { 
-    const target = event.target ; // check where the user clicked 
+    const target = event.target.closest('button'); // Use closest to handle icon clicks
+    
+    if (!target) return;
+    
     const action = target.dataset.action ; 
     const id = target.dataset.id ; 
 
+    console.log('Button clicked:', { action, id }); // Debug log
+
     if(!action || !id) { 
+        console.log('Missing action or id');
         return ; 
     }
-    if(action === `view`){
-        // viewEmployeeId() ;
-        console.log(`Viewing Profile...`) ; 
-    } else if(action === `edit`){
-        // handle the edit here 
-        console.log(`Editing profile`) ; 
+    
+    if(action === 'edit'){
+        console.log('Editing profile for ID:', id); 
         try {
-            // if(!db){
-            //     return ; 
-            // }
-            const user = await getEmployeeById(db,id) ; 
+            const user = await getEmployeeById(db, id) ; 
             document.getElementById('edit-id').value = user.id;
             document.getElementById('edit-firstname').value = user.identity.firstName;
             document.getElementById('edit-lastname').value = user.identity.lastName;
@@ -138,8 +162,67 @@ document.getElementById('employee-list').addEventListener('click', async(event) 
             console.error("Could not load user for editing", error);
             alert("Failed to load user data.");
         }
+    } else if(action === 'delete') {
+        console.log('Delete requested for ID:', id);
+        
+        // Get employee info for confirmation
+        try {
+            const user = await getEmployeeById(db, id);
+            const employeeName = `${user.identity.firstName} ${user.identity.lastName}`;
+            
+            // Enhanced confirmation dialog
+            const confirmed = confirm(
+                `DELETE EMPLOYEE\n\n` +
+                `Employee: ${employeeName}\n` +
+                `Email: ${user.email}\n` +
+                `Department: ${user.department?.deptName || 'N/A'}\n\n` +
+                `This will mark the employee as deleted and remove their access.\n\n` +
+                `Are you sure you want to proceed?`
+            );
+            
+            if (confirmed) {
+                // Disable the button to prevent double-clicks
+                target.disabled = true;
+                target.innerHTML = '<span class="btn-icon">⏳</span> Deleting...';
+                
+                try {
+                    // Call delete function
+                    const currentUserRole = sessionStorage.getItem('role');
+                    const result = await deleteEmployee(db, currentUserRole, id);
+                    
+                    console.log('Delete result:', result);
+                    
+                    // Show success message
+                    alert(`Success!\n\nEmployee "${employeeName}" has been deleted.`);
+                    
+                    // Refresh the employee list
+                    const users = await getAllEmployees(db);
+                    renderUsers(users);
+                    
+                } catch (deleteError) {
+                    // Re-enable button on error
+                    target.disabled = false;
+                    target.innerHTML = '<span class="btn-icon">🗑️</span> Delete';
+                    throw deleteError;
+                }
+            }
+        } catch (error) {
+            console.error("Error during deletion:", error);
+            
+            let errorMessage = "Failed to delete employee.";
+            if (error.message.includes("Access Denied")) {
+                errorMessage = "You don't have permission to delete employees.";
+            } else if (error.message.includes("not found")) {
+                errorMessage = "Employee not found.";
+            } else if (error.message.includes("cannot delete your own")) {
+                errorMessage = "You cannot delete your own account.";
+            }
+            
+            alert(`Error: ${errorMessage}\n\nPlease try again or contact support.`);
+        }
     }
 });
+
 
 // Handle Form Submission
 document.getElementById('edit-form').addEventListener('submit', async (e) => {
