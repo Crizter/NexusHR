@@ -97,7 +97,8 @@ const populateIdentityCard = (user) => {
         roleElement.textContent = formatRole(user.role || 'Employee');
         
         // System data
-        idElement.textContent = user.id || 'N/A';
+        console.log("users",user)
+        idElement.textContent = user.displayId || 'N/A';
         departmentElement.textContent = user.department?.deptName || 'N/A';
         
         // Format join date

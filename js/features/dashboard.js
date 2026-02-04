@@ -91,11 +91,11 @@ const fetchFreshDataAndUpdateCache = async () => {
     console.log("[Dashboard] Fetching fresh data...");
     const [roleErr, userRole] = tryCatchSync(() => sessionStorage.getItem("role")) ; 
     if(roleErr){
-        console.error("[Dashboard] Failed to fetch fresh data:", error);
+        console.error("[Dashboard] Failed to fetch fresh data:", roleErr);
     }
     const [userErr, userId] = tryCatchSync(() => sessionStorage.getItem("userId")) ; 
     if(userErr){
-        console.error("[Dashboard] Failed to fetch fresh data:", error);
+        console.error("[Dashboard] Failed to fetch fresh data:", userErr);
     }
     const [err, data] = await tryCatchAsync(Promise.all([
         getAnnouncements(db, userRole),

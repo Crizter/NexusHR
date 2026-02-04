@@ -1,12 +1,10 @@
-
 import { checkPermission } from "../auth/rbac.js";
-import { PERMISSIONS, LEAVE_STATUS, ROLES  } from "../config.js";
+import { PERMISSIONS, LEAVE_STATUS, ROLES } from "../config.js";
 import { generateUUID } from "../utils/crypto.js";
 import { tryCatchAsync, tryCatchSync } from "../utils/tryCatch.js";
 
-
 const DB_NAME = "NexusDB";
-const DB_VERSION = 8;
+const DB_VERSION = 9;
 
 let dbInstance = null;
 let connectionPromise = null;
@@ -49,15 +47,12 @@ async function openConnection() {
       const oldVersion = event.oldVersion;
       const newVersion = event.newVersion;
 
-     
-
       if (!db.objectStoreNames.contains("users")) {
         const userStore = db.createObjectStore("users", { keyPath: "id" });
         userStore.createIndex("roleIndex", "role", { unique: false });
         userStore.createIndex("emailIndex", "email", { unique: true });
         userStore.createIndex("deptIndex", "department", { unique: false });
         userStore.createIndex("usernameIndex", "username", { unique: false });
-        
       }
 
       if (!db.objectStoreNames.contains("payroll")) {
@@ -65,7 +60,9 @@ async function openConnection() {
           keyPath: "payrollId",
         });
         payrollStore.createIndex("userIndex", "userId", { unique: true });
-       
+      }
+      if (!db.objectStoreNames.contains("counter")) {
+        const counterStore = db.createObjectStore("counter", { keyPath: "id" });
       }
 
       if (!db.objectStoreNames.contains("announcement")) {
@@ -79,7 +76,6 @@ async function openConnection() {
         announcementStore.createIndex("authorIndex", "author", {
           unique: false,
         });
-        
       }
 
       if (!db.objectStoreNames.contains("holidays")) {
@@ -88,17 +84,14 @@ async function openConnection() {
         });
         holidayStore.createIndex("dateIndex", "date", { unique: true });
         holidayStore.createIndex("typeIndex", "type", { unique: false });
-        
       }
 
       if (!db.objectStoreNames.contains("syncQueue")) {
         db.createObjectStore("syncQueue", { keyPath: "idemPotencyKey" });
-        
       }
 
       if (!db.objectStoreNames.contains("department")) {
         db.createObjectStore("department", { keyPath: "deptId" });
-        
       }
 
       if (!db.objectStoreNames.contains("leave_requests")) {
@@ -112,7 +105,6 @@ async function openConnection() {
         leaveStore.createIndex("deptIndex", "deptId", {
           unique: false,
         });
-        
       }
 
       if (!db.objectStoreNames.contains("messages")) {
@@ -122,7 +114,6 @@ async function openConnection() {
         messageStore.createIndex("conversationIndex", "conversationId", {
           unique: false,
         });
-        
       }
 
       if (!db.objectStoreNames.contains("credentials")) {
@@ -131,13 +122,12 @@ async function openConnection() {
         });
         credentialStore.createIndex("emailIndex", "email", { unique: true });
         credentialStore.createIndex("userIdIndex", "userId", { unique: false });
-        
       }
     };
 
     request.onsuccess = (event) => {
       const db = event.target.result;
-    
+
       db.onversionchange = () => {
         console.warn(
           "[DB] Database version changed in another tab. Closing connection.",
@@ -198,7 +188,7 @@ export const updateEmployee = async (db, currentUserRole, employeeData) => {
   if (!checkPermission(currentUserRole, PERMISSIONS.EDIT_RECORD)) {
     throw new Error("Access Denied: You do not have permission to edit.");
   }
-
+  
   const userStore = db.transaction(["users"], "readwrite").objectStore("users");
 
   return new Promise((resolve, reject) => {
@@ -239,6 +229,163 @@ export const getEmployeeById = async (db, id) => {
     };
   });
 };
+
+export const deleteEmployee = async (db, currentUserRole, employeeId) => {
+  // Check permissions - only HR managers can delete employees
+  if (!checkPermission(currentUserRole, PERMISSIONS.EDIT_RECORD)) {
+    throw new Error("Access Denied: You do not have permission to delete employees.");
+  }
+
+  return new Promise(async (resolve, reject) => {
+    try {
+      const transaction = db.transaction(["users", "credentials"], "readwrite");
+      const userStore = transaction.objectStore("users");
+      const credentialsStore = transaction.objectStore("credentials");
+
+      // First, get the employee to verify they exist and get their email
+      const getEmployeeRequest = userStore.get(employeeId);
+      
+      getEmployeeRequest.onsuccess = () => {
+        const employee = getEmployeeRequest.result;
+        
+        if (!employee) {
+          reject(new Error("Employee not found"));
+          return;
+        }
+
+        if (employee.isDeleted) {
+          reject(new Error("Employee is already deleted"));
+          return;
+        }
+
+        // Prevent deletion of current user (self-deletion)
+        const currentUserId = sessionStorage.getItem('userId');
+        if (employee.id === currentUserId) {
+          reject(new Error("You cannot delete your own account"));
+          return;
+        }
+
+        // Soft delete: Mark employee as deleted instead of hard deletion
+        const updatedEmployee = {
+          ...employee,
+          isDeleted: true,
+          deletedAt: Date.now(),
+          deletedBy: currentUserId,
+          lastUpdated: Date.now()
+        };
+
+        // Update employee record
+        const updateEmployeeRequest = userStore.put(updatedEmployee);
+        
+        updateEmployeeRequest.onsuccess = () => {
+          // Also delete their credentials
+          const deleteCredentialsRequest = credentialsStore.delete(employee.email);
+          
+          deleteCredentialsRequest.onsuccess = () => {
+            console.log(`[DB] Employee ${employee.identity.firstName} ${employee.identity.lastName} deleted successfully`);
+            resolve({
+              success: true,
+              message: "Employee deleted successfully",
+              deletedEmployee: {
+                id: employee.id,
+                name: `${employee.identity.firstName} ${employee.identity.lastName}`,
+                email: employee.email
+              }
+            });
+          };
+          
+          deleteCredentialsRequest.onerror = (e) => {
+            console.warn("[DB] Failed to delete credentials, but employee marked as deleted");
+            resolve({
+              success: true,
+              message: "Employee deleted successfully (credentials cleanup failed)",
+              deletedEmployee: {
+                id: employee.id,
+                name: `${employee.identity.firstName} ${employee.identity.lastName}`,
+                email: employee.email
+              }
+            });
+          };
+        };
+        
+        updateEmployeeRequest.onerror = (e) => {
+          console.error("[DB] Failed to delete employee:", e.target.error);
+          reject(new Error(`Failed to delete employee: ${e.target.error.message}`));
+        };
+      };
+      
+      getEmployeeRequest.onerror = (e) => {
+        console.error("[DB] Error fetching employee for deletion:", e.target.error);
+        reject(new Error(`Failed to fetch employee: ${e.target.error.message}`));
+      };
+      
+    } catch (error) {
+      console.error("[DB] Delete employee transaction error:", error);
+      reject(error);
+    }
+  });
+};
+
+// Optional: Hard delete function (permanently removes from database)
+export const permanentlyDeleteEmployee = async (db, currentUserRole, employeeId) => {
+  // Only super admin should have this permission
+  if (currentUserRole !== 'superadmin') {
+    throw new Error("Access Denied: Only super admin can permanently delete employees.");
+  }
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(["users", "credentials"], "readwrite");
+    const userStore = transaction.objectStore("users");
+    const credentialsStore = transaction.objectStore("credentials");
+
+    // Get employee first to get their email
+    const getEmployeeRequest = userStore.get(employeeId);
+    
+    getEmployeeRequest.onsuccess = () => {
+      const employee = getEmployeeRequest.result;
+      
+      if (!employee) {
+        reject(new Error("Employee not found"));
+        return;
+      }
+
+      // Delete employee record
+      const deleteEmployeeRequest = userStore.delete(employeeId);
+      
+      deleteEmployeeRequest.onsuccess = () => {
+        // Delete credentials
+        const deleteCredentialsRequest = credentialsStore.delete(employee.email);
+        
+        deleteCredentialsRequest.onsuccess = () => {
+          resolve({
+            success: true,
+            message: "Employee permanently deleted",
+            deletedEmployee: {
+              id: employee.id,
+              name: `${employee.identity.firstName} ${employee.identity.lastName}`,
+              email: employee.email
+            }
+          });
+        };
+        
+        deleteCredentialsRequest.onerror = (e) => {
+          reject(new Error(`Failed to delete credentials: ${e.target.error.message}`));
+        };
+      };
+      
+      deleteEmployeeRequest.onerror = (e) => {
+        reject(new Error(`Failed to delete employee: ${e.target.error.message}`));
+      };
+    };
+    
+    getEmployeeRequest.onerror = (e) => {
+      reject(new Error(`Failed to fetch employee: ${e.target.error.message}`));
+    };
+  });
+};
+
+
+
 
 export const addUserCredentials = async (
   db,
@@ -489,74 +636,107 @@ export const seedDatabase = async (db) => {
           ];
 
           credentials.forEach((cred) => credStore.add(cred));
-          
+          console.log("[DB] Credentials seeded successfully");
         }
       };
 
-      // Seed Users
-      const userTx = db.transaction(["users"], "readwrite");
+      // Seed Counter and Users
+      const userTx = db.transaction(["users", "counter"], "readwrite");
       const userStore = userTx.objectStore("users");
+      const counterStore = userTx.objectStore("counter");
       const userCountReq = userStore.count();
 
       userCountReq.onsuccess = () => {
         if (userCountReq.result === 0) {
-          
+          console.log("[DB] Seeding Counter and Users...");
 
-          const seedUsers = [
-            {
-              id: crypto.randomUUID(),
-              identity: {
-                firstName: "Sarah",
-                lastName: "Connor",
-                contactNumber: "555-0199",
-                address: { city: "Los Angeles" },
-              },
-              role: "hr_manager",
-              department: { deptId: "DEP-003", deptName: "Operations" },
-              email: "sarah@nexushr.com",
-              isDeleted: false,
-              attendance: {
-                status: "active",
-                lastLogin: Date.now(),
-                logs: [],
-              },
-              skills: ["Management", "Recruiting"],
-              financial: {
-                baseSalary: 85000,
-                currency: "USD",
-                taxBrackets: "tier_2",
-                bankDetail: { bankName: "Chase", accountNumber: "****1234" },
-              },
-            },
-            {
-              id: crypto.randomUUID(),
-              identity: {
-                firstName: "John",
-                lastName: "Doe",
-                contactNumber: "555-0200",
-                address: { city: "New York" },
-              },
-              role: "employee",
-              department: { deptId: "DEP-002", deptName: "Tech" },
-              email: "john@nexushr.com",
-              isDeleted: false,
-              attendance: { status: "active", lastLogin: Date.now(), logs: [] },
-              skills: ["JavaScript", "React", "Node.js"],
-              financial: {
-                baseSalary: 65000,
-                currency: "USD",
-                taxBrackets: "tier_1",
-                bankDetail: { bankName: "Citi", accountNumber: "****5678" },
-              },
-            },
-          ];
+          //  initialize the counter
+          const counterData = { id: "employee_counter", val: 0 };
+          const counterReq = counterStore.add(counterData);
 
-          seedUsers.forEach((user) => userStore.add(user));
-          
+          counterReq.onsuccess = () => {
+            console.log("[DB] Counter initialized successfully");
+
+            // Now seed users with displayId
+            const seedUsers = [
+              {
+                id: crypto.randomUUID(),
+                displayId: "POS-1", // First employee
+                identity: {
+                  firstName: "Sarah",
+                  lastName: "Connor",
+                  contactNumber: "555-0199",
+                  address: { city: "Los Angeles" },
+                },
+                role: "hr_manager",
+                department: { deptId: "DEP-003", deptName: "Operations" },
+                email: "sarah@nexushr.com",
+                isDeleted: false,
+                attendance: {
+                  status: "active",
+                  lastLogin: Date.now(),
+                  logs: [],
+                },
+                skills: ["Management", "Recruiting"],
+                financial: {
+                  baseSalary: 85000,
+                  currency: "USD",
+                  taxBrackets: "tier_2",
+                  bankDetail: { bankName: "Chase", accountNumber: "****1234" },
+                },
+              },
+              {
+                id: crypto.randomUUID(),
+                displayId: "POS-2", // Second employee
+                identity: {
+                  firstName: "John",
+                  lastName: "Doe",
+                  contactNumber: "555-0200",
+                  address: { city: "New York" },
+                },
+                role: "employee",
+                department: { deptId: "DEP-002", deptName: "Tech" },
+                email: "john@nexushr.com",
+                isDeleted: false,
+                attendance: { status: "active", lastLogin: Date.now(), logs: [] },
+                skills: ["JavaScript", "React", "Node.js"],
+                financial: {
+                  baseSalary: 65000,
+                  currency: "USD",
+                  taxBrackets: "tier_1",
+                  bankDetail: { bankName: "Citi", accountNumber: "****5678" },
+                },
+              },
+            ];
+
+            // Add users to the store
+            seedUsers.forEach((user) => userStore.add(user));
+            console.log("[DB] Users seeded successfully with displayId");
+
+            // Update counter to reflect the number of users added
+            const updateCounterData = { id: "employee_counter", val: 2 };
+            const updateCounterReq = counterStore.put(updateCounterData);
+
+            updateCounterReq.onsuccess = () => {
+              console.log("[DB] Counter updated to 2");
+            };
+
+            updateCounterReq.onerror = (e) => {
+              console.error("[DB] Failed to update counter:", e.target.error);
+            };
+          };
+
+          counterReq.onerror = (e) => {
+            console.error("[DB] Failed to initialize counter:", e.target.error);
+            reject(e.target.error);
+          };
         }
 
         // Resolve when all seeding is complete
-        userTx.oncomplete = () => resolve();
+        userTx.oncomplete = () => {
+          console.log("[DB] All seeding operations completed successfully");
+          resolve();
+        };
       };
 
       userTx.onerror = (e) => reject(e);
@@ -567,15 +747,13 @@ export const seedDatabase = async (db) => {
 };
 
 export const applyLeave = async (db, currentUserRole, userId, payload) => {
-
-  
   if (!db || !userId) {
     return;
   }
   if (!checkPermission(currentUserRole, PERMISSIONS.APPLY_LEAVE)) {
     throw new Error("Access Denied: You do not have permission to add.");
   }
-  
+
   const data = {
     id: payload.id,
     employeeId: userId,
@@ -590,25 +768,21 @@ export const applyLeave = async (db, currentUserRole, userId, payload) => {
     timestamp: Date.now(),
   };
 
-
   const [error, successMsg] = await tryCatchAsync(
     new Promise((resolve, reject) => {
-      
       const tx = db.transaction(["leave_requests"], "readwrite");
       const store = tx.objectStore("leave_requests");
-      
+
       // First, check if ID already exists
       const checkReq = store.get(data.id);
-      
+
       checkReq.onsuccess = () => {
         if (checkReq.result) {
-          console.error('[DB] Duplicate ID detected:', data.id);
+          console.error("[DB] Duplicate ID detected:", data.id);
           reject(new Error(`Leave request with ID ${data.id} already exists`));
           return;
         }
-        
-        
-        
+
         // Ensure all data types are correct for the flattened structure
         const sanitizedData = {
           id: String(data.id),
@@ -620,20 +794,17 @@ export const applyLeave = async (db, currentUserRole, userId, payload) => {
           startDate: String(data.startDate),
           endDate: String(data.endDate),
           status: String(data.status),
-          timestamp: Number(data.timestamp)
+          timestamp: Number(data.timestamp),
         };
-        
-       
-        
+
         const req = store.add(sanitizedData);
-        
+
         req.onsuccess = () => {
-         
           resolve("Leave successfully applied");
         };
-        
+
         req.onerror = (e) => {
-          console.error('[DB] IndexedDB add failed with detailed info:', {
+          console.error("[DB] IndexedDB add failed with detailed info:", {
             error: e.target.error,
             errorName: e.target.error?.name,
             errorMessage: e.target.error?.message,
@@ -642,29 +813,41 @@ export const applyLeave = async (db, currentUserRole, userId, payload) => {
             sanitizedData: sanitizedData,
             objectStoreName: store.name,
             keyPath: store.keyPath,
-            indexNames: Array.from(store.indexNames)
+            indexNames: Array.from(store.indexNames),
           });
-          
+
           // Try to provide more specific error messages
-          if (e.target.error?.name === 'ConstraintError') {
-            reject(new Error(`Constraint violation: Possible duplicate key or invalid data structure`));
-          } else if (e.target.error?.name === 'DataError') {
+          if (e.target.error?.name === "ConstraintError") {
+            reject(
+              new Error(
+                `Constraint violation: Possible duplicate key or invalid data structure`,
+              ),
+            );
+          } else if (e.target.error?.name === "DataError") {
             reject(new Error(`Data error: Invalid data type or structure`));
-          } else if (e.target.error?.name === 'InvalidStateError') {
+          } else if (e.target.error?.name === "InvalidStateError") {
             reject(new Error(`Invalid state: Transaction may be inactive`));
           } else {
-            reject(new Error(`Failed to add leave: ${e.target.error?.message || 'Unknown IndexedDB error'}`));
+            reject(
+              new Error(
+                `Failed to add leave: ${e.target.error?.message || "Unknown IndexedDB error"}`,
+              ),
+            );
           }
         };
       };
-      
+
       checkReq.onerror = (e) => {
-        console.error('[DB] Error checking for existing ID:', e.target.error);
-        reject(new Error(`Failed to check for duplicate ID: ${e.target.error?.message}`));
+        console.error("[DB] Error checking for existing ID:", e.target.error);
+        reject(
+          new Error(
+            `Failed to check for duplicate ID: ${e.target.error?.message}`,
+          ),
+        );
       };
     }),
   );
-  
+
   if (error) {
     console.error("Failed to apply for leave:", error);
     throw error;
@@ -704,93 +887,79 @@ export const getLeavesByHr = async (db, userRole, hrDeptId) => {
     console.error("Access Denied: User role cannot view leave records.");
     return [];
   }
-  
-  
-  
+
   const [error, leaves] = await tryCatchAsync(
     new Promise((resolve, reject) => {
-      
       const tx = db.transaction(["leave_requests", "users"], "readonly");
       const leaveStore = tx.objectStore("leave_requests");
       const userStore = tx.objectStore("users");
-      
-      
-      
+
       const request = leaveStore.getAll();
 
       request.onsuccess = () => {
-        
-        
-        const deptLeaves = request.result.filter(leave => {
-        
+        const deptLeaves = request.result.filter((leave) => {
           return leave.deptId === hrDeptId;
         });
-        
-      
-        
+
         if (deptLeaves.length === 0) {
-          
           resolve([]);
           return;
         }
-        
+
         const enhancedLeaves = [];
         let completed = 0;
-        
-        
-        
+
         deptLeaves.forEach((leave, index) => {
-          
-          
           const getUserReq = userStore.get(leave.employeeId);
-          
+
           getUserReq.onsuccess = () => {
             const user = getUserReq.result;
-            
-            
+
             const enhancedLeave = {
               ...leave,
-              employeeName: user ? `${user.identity.firstName} ${user.identity.lastName}` : 'Unknown Employee'
+              employeeName: user
+                ? `${user.identity.firstName} ${user.identity.lastName}`
+                : "Unknown Employee",
             };
-            
-            
+
             enhancedLeaves.push(enhancedLeave);
             completed++;
-            
-            
-            
+
             // When all user lookups are complete
             if (completed === deptLeaves.length) {
-              
-              const sorted = enhancedLeaves.sort((a, b) => b.timestamp - a.timestamp);
-              
+              const sorted = enhancedLeaves.sort(
+                (a, b) => b.timestamp - a.timestamp,
+              );
+
               resolve(sorted);
             }
           };
-          
+
           getUserReq.onerror = (e) => {
-            console.error(`[DB] Failed to get user for employeeId ${leave.employeeId}:`, e.target.error);
-            
+            console.error(
+              `[DB] Failed to get user for employeeId ${leave.employeeId}:`,
+              e.target.error,
+            );
+
             // Even if user lookup fails, include the leave
             enhancedLeaves.push({
               ...leave,
-              employeeName: 'Unknown Employee'
+              employeeName: "Unknown Employee",
             });
             completed++;
-            
-            
-            
+
             if (completed === deptLeaves.length) {
-              
-              const sorted = enhancedLeaves.sort((a, b) => b.timestamp - a.timestamp);
+              const sorted = enhancedLeaves.sort(
+                (a, b) => b.timestamp - a.timestamp,
+              );
               resolve(sorted);
             }
           };
         });
       };
-      
+
       request.onerror = (e) => {
-        console.error('[DB] Failed to get all leave requests:', e.target.error);
+        console.error("[DB] Failed to get all leave requests:", e.target.error);
         reject(`Failed to fetch dept leaves: ${e.target.error}`);
       };
     }),
@@ -800,57 +969,102 @@ export const getLeavesByHr = async (db, userRole, hrDeptId) => {
     console.error("Error getting employee leaves:", error);
     return [];
   }
-  
-  
+
   return leaves;
 };
 
-export const updateLeaveStatus = async (db, userRole, requestId, deptId, newStatus) => { 
+export const updateLeaveStatus = async (
+  db,
+  userRole,
+  requestId,
+  deptId,
+  newStatus,
+) => {
   // Validate status
   if (!Object.values(LEAVE_STATUS).includes(newStatus)) {
     throw new Error(`Invalid status: ${newStatus}`);
   }
-  
+
   const [error, result] = await tryCatchAsync(
-    new Promise((resolve, reject) => { 
+    new Promise((resolve, reject) => {
       const tx = db.transaction(["leave_requests"], "readwrite");
       const store = tx.objectStore("leave_requests");
       const getReq = store.get(requestId);
-      
-      getReq.onsuccess = () => { 
-        const leaveReq = getReq.result; 
-        
+
+      getReq.onsuccess = () => {
+        const leaveReq = getReq.result;
+
         if (!leaveReq) {
           reject(new Error("Leave request not found"));
           return;
         }
-        
+
         // Role-based validation
-        if (leaveReq.status !== LEAVE_STATUS.PENDING && userRole === ROLES.employee) {
+        if (
+          leaveReq.status !== LEAVE_STATUS.PENDING &&
+          userRole === ROLES.employee
+        ) {
           reject(new Error("Cannot modify a processed leave request"));
           return;
         }
-        
+
         // Update status
         leaveReq.status = newStatus;
         leaveReq.lastModified = Date.now();
         leaveReq.modifiedBy = userRole;
-        
+
         const putReq = store.put(leaveReq);
         putReq.onsuccess = () => resolve("Leave status updated successfully");
-        putReq.onerror = (e) => reject(new Error(`Update failed: ${e.target.error.message}`));
+        putReq.onerror = (e) =>
+          reject(new Error(`Update failed: ${e.target.error.message}`));
       };
-      
-      getReq.onerror = (e) => { 
-        reject(new Error(`Failed to retrieve leave request: ${e.target.error.message}`));
+
+      getReq.onerror = (e) => {
+        reject(
+          new Error(
+            `Failed to retrieve leave request: ${e.target.error.message}`,
+          ),
+        );
       };
-    })
+    }),
   );
 
   if (error) {
     console.error("Error updating employee leave:", error);
     throw error; // Re-throw so the UI can handle it
   }
-  
+
   return result;
+};
+
+// counter handler to update/retrieve the value  
+export const updateCounter = (db, counterName) => {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(["counter"], "readwrite");
+    const store = tx.objectStore("counter");
+    const req = store.get(counterName);
+
+    req.onsuccess = () => {
+      let data = req.result;
+
+      if (!data) {
+        data = { id: counterName, val: 0 };
+      }
+      data.val++;
+
+      const updateReq = store.put(data);
+
+      updateReq.onsuccess = () => {
+        resolve(data.val);
+      };
+
+      updateReq.onerror = () => {
+        reject(updateReq.error);
+      };
+    };
+
+    req.onerror = () => {
+      reject("Failed to fetch counter");
+    };
+  });
 };

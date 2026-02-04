@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Stress Test Lab</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .controls { margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 20px; }
+        button { padding: 10px 15px; cursor: pointer; }
+        #container { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 5px; }
+        .visitor-card { padding: 5px; border: 1px solid #ddd; font-size: 10px; background: #f9f9f9; }
+    </style>
+</head>
+<body>
+
+    <h1>Requirement 12: Memory Stress Test</h1>
+    
+    <div class="controls">
+        <button onclick="startStressTest()">1. Start Stress Test (1,000 Records)</button>
+        <button onclick="endStressTest()">2. End Session (Cleanup)</button>
+    </div>
+
+    <div id="status">Status: Ready</div>
+    <div id="container"></div>
+
+    <script>
+        // WeakMap allows the GC to reclaim memory once the DOM node is removed
+        const guestDataCache = new WeakMap(); 
+        
+        
+        const container = document.getElementById('container');
+        const statusText = document.getElementById('status');
+
+        function startStressTest() {
+            statusText.innerText = "Status: Generating 1,000 unique records...";
+            
+            const fragment = document.createDocumentFragment();
+
+            for (let i = 0; i < 1000; i++) {
+                // Create the DOM element
+                const card = document.createElement('div');
+                card.className = 'visitor-card';
+                card.innerHTML = `Guest #${i}`;
+
+                // Anti-optimization: Generate unique, heavy data to prevent string interning
+                // Using Math.random ensures the browser allocates new memory for each object
+                const heavyData = {
+                    id: i,
+                    uniqueKey: Math.random().toString(36),
+                    // Create a large, unique array
+                    buffer: Array.from({ length: 5000 }, () => "data_" + Math.random()),
+                    timestamp: Date.now()
+                };
+
+                // Store in WeakMap (Requirement 15)
+                guestDataCache.set(card, heavyData);
+
+                fragment.appendChild(card);
+            }
+
+            container.appendChild(fragment);
+            statusText.innerText = "Status: 1,000 Records Generated. Perform Heap Snapshot now.";
+            console.log("Stress test started.");
+        }
+
+        function endStressTest() {
+            // Removing the nodes from the DOM
+            container.innerHTML = ''; 
+            
+            statusText.innerText = "Status: DOM Cleared. Use 'Collect Garbage' icon in DevTools.";
+            console.log("Cleanup complete. Memory is now eligible for Garbage Collection.");
+        }
+    </script>
+</body>
+</html>
