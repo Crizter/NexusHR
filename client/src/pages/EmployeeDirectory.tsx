@@ -4,7 +4,7 @@ import { mockApi } from '@/lib/mockApi';
 import type { User } from '@/lib/mockApi';
 import { PERMISSIONS } from '@/lib/config';
 import { AddEmployeeDialog } from '@/components/directory/AddEmployeeDialog';
-
+import { useNavigate } from 'react-router-dom';
 import {
   Table,
   TableBody,
@@ -119,7 +119,7 @@ export function EmployeeDirectory() {
   const [loading, setLoading]         = useState<boolean>(true);
   const [error, setError]             = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
-
+  const navigate = useNavigate() ; 
     // ── Dialog state ───────────────────────────────────────────────────────────
   // Called by the dialog on successful save — re-fetches the table
   const handleEmployeeAdded = async () => {
@@ -293,9 +293,10 @@ export function EmployeeDirectory() {
             {/* ── Data rows ──────────────────────────────────────────────── */}
             {!loading &&
               paginatedRows.map((emp) => (
-                <TableRow
+                 <TableRow
                   key={emp._id}
-                  className="hover:bg-gray-50 transition-colors"
+                  className="hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => navigate(`/employees/${emp._id}`)}
                 >
                   {/* Employee ID */}
                   <TableCell className="font-mono text-xs text-gray-500">
@@ -333,7 +334,9 @@ export function EmployeeDirectory() {
 
                   {/* Actions dropdown — RBAC guarded */}
                   {hasActions && (
-                    <TableCell className="text-right">
+                    <TableCell 
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button

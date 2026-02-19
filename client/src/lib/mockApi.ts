@@ -1094,6 +1094,20 @@ export const mockApi = {
     
     return org;
   },
+    async getEmployeeById(orgId: string, userId: string): Promise<User> {
+    await delay();
+
+    const user = db.users.find(
+      (u) => u._id === userId && u.orgId === orgId && !u.isDeleted
+    );
+
+    if (!user) {
+      throw new Error('Employee not found');
+    }
+
+    return user;
+  },
+  
 };
 
 // Export the database for testing purposes (optional)
