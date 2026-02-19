@@ -5,6 +5,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { LoginPage } from '@/pages/LoginPage';
 import { DashboardPage } from '@/pages/DashboardPage';
+import { EmployeeDirectory } from '@/pages/EmployeeDirectory';
 import { WelcomePage } from '@/pages/WelcomePage';
 import './index.css';
 
@@ -35,7 +36,7 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardLayout>
-                  <div>Employees Page - Coming Soon</div>
+                  <EmployeeDirectory />
                 </DashboardLayout>
               </ProtectedRoute>
             }
