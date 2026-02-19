@@ -1098,3 +1098,7 @@ export const mockApi = {
 
 // Export the database for testing purposes (optional)
 export const __mockDb = db;
+
+
+// email: 'sarah.johnson@nexustech.com',
+//       passwordHash: 'mock_hashed_password_123', 

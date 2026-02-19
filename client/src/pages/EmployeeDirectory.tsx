@@ -3,6 +3,8 @@ import { useAuth } from '@/context/AuthContext';
 import { mockApi } from '@/lib/mockApi';
 import type { User } from '@/lib/mockApi';
 import { PERMISSIONS } from '@/lib/config';
+import { AddEmployeeDialog } from '@/components/directory/AddEmployeeDialog';
+
 import {
   Table,
   TableBody,
@@ -45,6 +47,9 @@ const ROLE_BADGE_STYLES: Record<string, string> = {
   hr_manager:  'bg-blue-100 text-blue-800 hover:bg-blue-100',
   employee:    'bg-gray-100 text-gray-800 hover:bg-gray-100',
 };
+
+
+
 
 // ─── Skeleton row ─────────────────────────────────────────────────────────────
 function SkeletonRow() {
@@ -113,6 +118,22 @@ export function EmployeeDirectory() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [loading, setLoading]         = useState<boolean>(true);
   const [error, setError]             = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+
+    // ── Dialog state ───────────────────────────────────────────────────────────
+  // Called by the dialog on successful save — re-fetches the table
+  const handleEmployeeAdded = async () => {
+    if (!user?.orgId) return;
+    try {
+      const data = await mockApi.getEmployees(user.orgId);
+      setEmployees(data);
+    } catch (err) {
+      console.error('Re-fetch after add failed:', err);
+    }
+  };
+
+
+
 
   // Pagination state
   const [currentPage, setCurrentPage]   = useState<number>(1);
@@ -153,6 +174,8 @@ export function EmployeeDirectory() {
         emp.email.toLowerCase().includes(query)
     );
   }, [employees, searchQuery]);
+
+ 
 
   // ── Derived: pagination ────────────────────────────────────────────────────
   const totalPages    = Math.max(1, Math.ceil(filteredEmployees.length / pageSize));
@@ -207,7 +230,7 @@ export function EmployeeDirectory() {
 
       {/* ── Action Bar ───────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Search input with icon */}
+        {/* Search input — unchanged */}
         <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <Input
@@ -218,14 +241,11 @@ export function EmployeeDirectory() {
           />
         </div>
 
-        {/* Add Employee — RBAC guarded */}
+        {/* Add Employee button now opens the dialog */}
         {canAdd && (
-          <Button
+          <Button            
             className="flex items-center gap-2 shrink-0"
-            onClick={() => {
-              // TODO: open add employee modal / navigate
-              console.log('Add employee clicked');
-            }}
+            onClick={() => setDialogOpen(true)}
           >
             <UserPlus className="h-4 w-4" />
             Add Employee
@@ -466,6 +486,11 @@ export function EmployeeDirectory() {
           </div>
         </div>
       )}
+       <AddEmployeeDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSuccess={handleEmployeeAdded}
+      />
     </div>
   );
 }
