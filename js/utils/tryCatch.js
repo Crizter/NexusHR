@@ -7,7 +7,7 @@ export const tryCatchAsync = async (promise) => {
     }
 };
 
-export const tryCatchSync =  (fn) => { 
+export const tryCatchSync =  (fn) => {  
     try {
         const data = fn() ; 
         return [null, data] ; 
