@@ -53,6 +53,17 @@ function App() {
             }
           />
 
+           <Route
+            path="/reports"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                <div>Reports Page - Coming Soon</div>
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Catch all route - redirect to dashboard if logged in, otherwise to welcome */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
