@@ -63,13 +63,5 @@ userSchema.index({ orgId: 1, email: 1 }, { unique: true });
 // Fast department-level HR lookups
 userSchema.index({ orgId: 1, departmentId: 1 });
 
-// ─── Query helper: auto-exclude soft-deleted users ────────────────────────────
-userSchema.pre(/^find/, function (next) {
-  // Only apply if the caller hasn't explicitly set isDeleted
-  if (this.getFilter().isDeleted === undefined) {
-    this.where({ isDeleted: false });
-  }
-  next();
-});
 
 export default mongoose.model('User', userSchema);

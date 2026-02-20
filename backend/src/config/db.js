@@ -1,18 +1,17 @@
 import mongoose from 'mongoose';
-
 // ─── Connection state tracker ─────────────────────────────────────────────────
 let isConnected = false;
 
 const connectDB = async () => {
-  // Prevent duplicate connections (useful in dev with hot-reload)
+  // Prevent duplicate connections 
   if (isConnected) {
-    console.log('⚡ MongoDB already connected');
+    console.log(' MongoDB already connected');
     return;
   }
 
-  const uri = process.env.MONGOURI;
+  const uri = process.env.MONGO_URI;
 
-  if (!uri) {
+  if (!uri) {    
     console.error(' MONGO_URI is not defined in .env');
     process.exit(1);
   }
