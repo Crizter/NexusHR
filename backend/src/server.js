@@ -5,6 +5,9 @@ import connectDB from './config/db.js';
 
 // ─── Route imports ────────────────────────────────────────────────────────────
 import authRoutes from './routes/authRoutes.js';
+import employeeRoutes from './routes/employeeRoutes.js' ; 
+import dashboardRoutes  from './routes/dashboardRoutes.js';   
+import leaveRoutes from './routes/leaveRoutes.js';
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -17,8 +20,8 @@ const PORT = process.env.PORT || 5000;
 // }));
 
 app.use(cors({
-  origin:      '*',           // ← open for development/Postman testing
-  credentials: false,         // ← must be false when origin is '*'
+  origin:      '*',           // open for development/Postman testing
+  credentials: false,         // must be false when origin is '*'
   methods:     ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -28,6 +31,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
+app.use('/api/employees',employeeRoutes);
+app.use('/api/dashboard',dashboardRoutes);
+app.use('/api/leaves', leaveRoutes);
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
