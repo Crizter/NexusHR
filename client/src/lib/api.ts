@@ -222,7 +222,7 @@ export const api = {
     payload: Omit<LeaveRequest, '_id' | 'orgId' | 'createdAt'>
   ): Promise<LeaveRequest> {
     try {
-      const response = await axiosInstance.post<LeaveRequest>('/leaves', payload);
+      const response = await axiosInstance.post<LeaveRequest>('/leaves/apply', payload);
       return response.data;
     } catch (error) {
       extractError(error);
@@ -265,6 +265,22 @@ export const api = {
     }
   },
 
+    // ── Departments ─────────────────────────────────────────────────────────────
+
+  /**
+   * GET /departments  — used by AddEmployeeDialog
+   */
+  async getDepartments(): Promise<Department[]> {
+    try {
+      const response = await axiosInstance.get<Department[]>('/departments');
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+
+
   
 
   // ── Organization ─────────────────────────────────────────────────────────────
@@ -281,3 +297,4 @@ export const api = {
     }
   },
 };
+

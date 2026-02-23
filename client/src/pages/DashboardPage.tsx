@@ -169,15 +169,6 @@ export function DashboardPage() {
           </p>
         </div>
 
-        {hasPermission('add_profile') && (
-          <Button
-            className="flex items-center space-x-2"
-            onClick={() => navigate('/employees/new')}
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Employee</span>
-          </Button>
-        )}
       </div>
 
       {/* ── Stats cards ───────────────────────────────────────────────────── */}
@@ -306,16 +297,7 @@ export function DashboardPage() {
           <CardContent>
             <div className="space-y-3">
 
-              {hasPermission('add_profile') && (
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={() => navigate('/employees/new')}
-                >
-                  <Users className="h-4 w-4 mr-3" />
-                  Add New Employee
-                </Button>
-              )}
+             
 
               {hasPermission('leave_approve') && (
                 <Button
