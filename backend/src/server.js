@@ -11,7 +11,8 @@ import dashboardRoutes  from './routes/dashboardRoutes.js';
 import leaveRoutes from './routes/leaveRoutes.js';
 import departmentRoutes from './routes/departmentRoutes.js'; 
 import reportRoutes from './routes/reportRoutes.js'  ;
-
+import profileRoutes from './routes/profileRoutes.js';
+import payrollRoutes from './routes/payrollRoutes.js';    
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -43,7 +44,8 @@ app.use('/api/dashboard',dashboardRoutes);
 app.use('/api/leaves', leaveRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/reports', reportRoutes) ; 
-
+app.use('/api/profile', profileRoutes);
+app.use('/api/payroll', payrollRoutes); 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
     console.log('res',res) ; 
