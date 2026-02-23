@@ -6,8 +6,11 @@ import { LoginPage }           from '@/pages/LoginPage';
 import { DashboardPage }       from '@/pages/DashboardPage';
 import { EmployeeDirectory }   from '@/pages/EmployeeDirectory';
 import { EmployeeProfile }     from '@/pages/EmployeeProfile';
+import { ReportsPage }          from '@/pages/ReportsPage';
 import { LeaveManagement }     from '@/pages/LeaveManagement';
+import { PayrollDashboard } from './pages/PayrollDashboard';
 import { WelcomePage }         from '@/pages/WelcomePage';
+import { MyProfile } from './pages/MyProfile';
 import { Toaster } from './components/ui/sonner';
 import './index.css';
 
@@ -41,10 +44,28 @@ function App() {
           <Route path="/reports" element={
             <ProtectedRoute>
               <DashboardLayout>
-                <div className="p-4 text-gray-500">Reports — coming soon</div>
+                <ReportsPage />
               </DashboardLayout>
             </ProtectedRoute>
           }/>
+
+             <Route path="/profile" element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <MyProfile />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }/>
+
+            <Route path="/payroll" element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <PayrollDashboard />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }/>
+
+
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

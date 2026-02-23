@@ -50,6 +50,19 @@ export interface User {
   lastLogin?: Date;
 }
 
+
+export interface AttendanceLeave {
+  _id:   string;
+  type:  'casual_leave' | 'sick_leave';
+  dates: {
+    startDate: string;
+    endDate:   string;
+    totalDays: number;
+  };
+}
+
+
+
 export interface Department {
   _id:       string;
   orgId:     string;
@@ -79,6 +92,37 @@ export interface LeaveRequest {
   };
   createdAt: Date;
 }
+export interface LeaveByType {
+  type:      'casual_leave' | 'sick_leave';
+  totalDays: number;
+  count:     number;
+}
+
+export interface LeaveByDepartment {
+  departmentId:   string;
+  departmentName: string;
+  totalDays:      number;
+  count:          number;
+}
+
+export interface OrganizationLeaveStats {
+  leavesByType:       LeaveByType[];
+  leavesByDepartment: LeaveByDepartment[];
+}
+
+export interface UpdateProfilePayload {
+  firstName: string;
+  lastName:  string;
+  email:     string;
+}
+
+export interface UpdatePasswordPayload {
+  oldPassword: string;
+  newPassword: string;
+}
+
+
+
 
 export interface AuthUser {
   id:    string;
@@ -97,6 +141,51 @@ export interface DashboardStats {
   totalLeavesThisMonth:    number;
   activeEmployees:         number;
 }
+
+
+
+export interface PayslipEarnings {
+  baseSalary:  number;
+  bonus:       number;
+  allowances:  number;
+}
+
+export interface PayslipDeductions {
+  tax:             number;
+  healthInsurance: number;
+  unpaidLeave:     number;
+}
+
+export interface Payslip {
+  _id:          string;
+  orgId:        string;
+  employeeId:   {
+    _id:         string;
+    displayId:   string;
+    email:       string;
+    profile: {
+      firstName: string;
+      lastName:  string;
+    };
+  } | string;
+  departmentId: string;
+  payPeriod: {
+    month: number;
+    year:  number;
+  };
+  earnings:    PayslipEarnings;
+  deductions:  PayslipDeductions;
+  netPay:      number;
+  status:      'draft' | 'processed' | 'paid';
+  paymentDate: string | null;
+  createdAt:   string;
+}
+
+export interface UpdatePayslipPayload {
+  earnings?: Partial<Omit<PayslipEarnings, 'baseSalary'>>;  // baseSalary is protected
+  deductions?: Partial<PayslipDeductions>;
+}
+
 
 // ─── Helper — extract a readable message from any Axios error ────────────────
 function extractError(error: unknown): never {
@@ -141,6 +230,18 @@ export const api = {
       extractError(error);
     }
   },
+  //── ATTENDANCE ───────────────────────────────────────────────────────────────
+    async getAttendanceReport(year: number): Promise<AttendanceLeave[]> {
+    try {
+      const response = await axiosInstance.get<AttendanceLeave[]>(
+        `/reports/attendance?year=${year}`
+      );
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
 
   // ── Employees ───────────────────────────────────────────────────────────────
 
@@ -213,6 +314,51 @@ export const api = {
       extractError(error);
     }
   },
+  // Get organization leave stats
+    async getOrganizationLeaveStats(): Promise<OrganizationLeaveStats> {
+    try {
+      const response = await axiosInstance.get<OrganizationLeaveStats>('/reports/summary');
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+
+
+  // ── Profile ─────────────────────────────────────────────────────────────────
+
+  /**
+   * PATCH /profile/info
+   * Updates the authenticated user's own name and email.
+   * Role, financial, and leaveBalances are NOT touched.
+   */
+  async updateMyProfile(data: UpdateProfilePayload): Promise<User> {
+    try {
+      const response = await axiosInstance.patch<User>('/profile/info', data);
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+  /**
+   * PATCH /profile/password
+   * Requires the user's current password for verification before updating.
+   */
+  async updateMyPassword(data: UpdatePasswordPayload): Promise<{ message: string }> {
+    try {
+      const response = await axiosInstance.patch<{ message: string }>(
+        '/profile/password',
+        data
+      );
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+
 
   /**
    * POST /leaves
@@ -296,5 +442,61 @@ export const api = {
       extractError(error);
     }
   },
+
+  // ── Payroll ─────────────────────────────────────────────────────────────────
+
+  async generatePayroll(
+    month: number,
+    year:  number
+  ): Promise<{ message: string; generated: number; skipped: number }> {
+    try {
+      const response = await axiosInstance.post('/payroll/generate', { month, year });
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+  async getPayslips(month: number, year: number): Promise<Payslip[]> {
+    try {
+      const response = await axiosInstance.get<Payslip[]>(
+        `/payroll?month=${month}&year=${year}`
+      );
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+  async updatePayslip(id: string, updates: UpdatePayslipPayload): Promise<Payslip> {
+    try {
+      const response = await axiosInstance.patch<Payslip>(`/payroll/${id}`, updates);
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+  async updatePayslipStatus(
+    id:     string,
+    status: 'draft' | 'processed' | 'paid'
+  ): Promise<Payslip> {
+    try {
+      const response = await axiosInstance.patch<Payslip>(
+        `/payroll/${id}/status`,
+        { status }
+      );
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
 };
+
+
+  
+
+
+
 

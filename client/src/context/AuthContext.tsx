@@ -29,6 +29,7 @@ interface AuthContextType {
   login:          (userData: User) => Promise<void>;
   logout:         () => void;
   hasPermission:  (permission: Permission) => boolean;
+    setUser:        React.Dispatch<React.SetStateAction<User | null>>;  
 }
 
 interface AuthProviderProps {
@@ -146,6 +147,16 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
 
     return (userPermissions as readonly Permission[]).includes(permission);
   };
+   // ── Update persisted user whenever user state changes ─────────
+    const setUserAndPersist: React.Dispatch<React.SetStateAction<User | null>> = (action) => {
+    setUser(prev => {
+      const next = typeof action === 'function' ? action(prev) : action;
+      if (next) persistUser(next);
+      else clearPersistedUser();
+      return next;
+    });
+  };
+
 
   // ── Loading screen ────────────────────────────────────────────────────────
   if (isLoading) {
@@ -159,8 +170,15 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
     );
   }
 
-  return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, hasPermission }}>
+    return (
+    <AuthContext.Provider value={{
+      user,
+      isLoading,
+      login,
+      logout,
+      hasPermission,
+      setUser: setUserAndPersist,    // ← expose it
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -16,6 +16,17 @@
     },
     timezone: String
   },
+  settings: {
+      leavePolicy: {
+        casualLeaves:  Number,
+        sickLeaves:  Number,
+      },
+      timezone: String,      
+      // NEW PAYROLL SETTINGS
+      currency: String,
+      payCycle: stringify ( enum : ['monthly', 'bi-weekly'], default:'monthly'),
+      taxId: String // Employer Identification Number (EIN)
+    },
   createdAt: Date
 }
 
@@ -136,3 +147,47 @@
 }
 // Production Indexes: { orgId: 1, date: 1 } 
 // (To quickly fetch upcoming holidays for a company).
+
+
+
+// payslips (The Monthly Payroll Records)
+// Production Indexes: 
+// * { orgId: 1, employeeId: 1, 'payPeriod.year': -1, 'payPeriod.month': -1 } (For employee viewing their history)
+// * { orgId: 1, 'payPeriod.year': 1, 'payPeriod.month': 1 } (For HR viewing the whole company's monthly run)
+// * { orgId: 1, employeeId: 1, 'payPeriod.month': 1, 'payPeriod.year': 1 } (UNIQUE - Prevents double-paying someone)
+
+{
+  _id: ObjectId,             // e.g., "75f8b..."
+  orgId: ObjectId,           // THE TENANT LOCK (Ref: Organization)
+  employeeId: ObjectId,      // Ref: User (Whose money this is)
+
+  // The specific month and year this payslip covers
+  payPeriod: {
+    month: Number,           // e.g., 2 (for February)
+    year: Number             // e.g., 2026
+  },
+
+  // Money going IN
+  earnings: {
+    baseSalary: Number,      // e.g., 5000 (Pulled from User.financial.baseSalary at time of generation)
+    bonus: Number,           // e.g., 500 (Manual input by HR)
+    allowances: Number       // e.g., 100 (Internet, travel, etc.)
+  },
+
+  // Money coming OUT
+  deductions: {
+    tax: Number,             // e.g., 800 (Calculated or manual)
+    healthInsurance: Number, // e.g., 150
+    unpaidLeave: Number      // e.g., 0 (Calculated based on LeaveRequests in this month)
+  },
+
+  // The final take-home amount
+  netPay: Number,            // e.g., 4650 (Auto-calculated: Total Earnings - Total Deductions)
+  
+  // The Workflow State
+  status: String,            // "draft" | "processed" | "paid"
+  paymentDate: Date,         // Stamped when HR changes status to "paid"
+
+  createdAt: Date,
+  updatedAt: Date
+}
