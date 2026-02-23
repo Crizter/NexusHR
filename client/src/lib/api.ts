@@ -50,6 +50,19 @@ export interface User {
   lastLogin?: Date;
 }
 
+
+export interface AttendanceLeave {
+  _id:   string;
+  type:  'casual_leave' | 'sick_leave';
+  dates: {
+    startDate: string;
+    endDate:   string;
+    totalDays: number;
+  };
+}
+
+
+
 export interface Department {
   _id:       string;
   orgId:     string;
@@ -141,6 +154,18 @@ export const api = {
       extractError(error);
     }
   },
+  //── ATTENDANCE ───────────────────────────────────────────────────────────────
+    async getAttendanceReport(year: number): Promise<AttendanceLeave[]> {
+    try {
+      const response = await axiosInstance.get<AttendanceLeave[]>(
+        `/reports/attendance?year=${year}`
+      );
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
 
   // ── Employees ───────────────────────────────────────────────────────────────
 
@@ -297,4 +322,5 @@ export const api = {
     }
   },
 };
+
 

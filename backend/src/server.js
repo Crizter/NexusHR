@@ -9,7 +9,8 @@ import authRoutes from './routes/authRoutes.js';
 import employeeRoutes from './routes/employeeRoutes.js' ; 
 import dashboardRoutes  from './routes/dashboardRoutes.js';   
 import leaveRoutes from './routes/leaveRoutes.js';
-import departmentRoutes from './routes/departmentRoutes.js';   
+import departmentRoutes from './routes/departmentRoutes.js'; 
+import reportRoutes from './routes/reportRoutes.js'  ;
 
 
 const app  = express();
@@ -41,6 +42,8 @@ app.use('/api/employees',employeeRoutes);
 app.use('/api/dashboard',dashboardRoutes);
 app.use('/api/leaves', leaveRoutes);
 app.use('/api/departments', departmentRoutes);
+app.use('/api/reports', reportRoutes) ; 
+
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
     console.log('res',res) ; 

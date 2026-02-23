@@ -6,6 +6,7 @@ import { LoginPage }           from '@/pages/LoginPage';
 import { DashboardPage }       from '@/pages/DashboardPage';
 import { EmployeeDirectory }   from '@/pages/EmployeeDirectory';
 import { EmployeeProfile }     from '@/pages/EmployeeProfile';
+import { ReportsPage }          from '@/pages/ReportsPage';
 import { LeaveManagement }     from '@/pages/LeaveManagement';
 import { WelcomePage }         from '@/pages/WelcomePage';
 import { Toaster } from './components/ui/sonner';
@@ -41,7 +42,7 @@ function App() {
           <Route path="/reports" element={
             <ProtectedRoute>
               <DashboardLayout>
-                <div className="p-4 text-gray-500">Reports — coming soon</div>
+                <ReportsPage />
               </DashboardLayout>
             </ProtectedRoute>
           }/>
