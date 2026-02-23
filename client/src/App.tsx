@@ -8,6 +8,7 @@ import { EmployeeDirectory }   from '@/pages/EmployeeDirectory';
 import { EmployeeProfile }     from '@/pages/EmployeeProfile';
 import { LeaveManagement }     from '@/pages/LeaveManagement';
 import { WelcomePage }         from '@/pages/WelcomePage';
+import { Toaster } from './components/ui/sonner';
 import './index.css';
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
+      <Toaster position="top-right" richColors />  
     </AuthProvider>
   );
 }

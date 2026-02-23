@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { mockApi } from '@/lib/mockApi';
-import type { User as Employee, LeaveRequest } from '@/lib/mockApi';
+import { api } from '@/lib/api';
+import type { User as Employee, LeaveRequest } from '@/lib/api';
 import { PERMISSIONS } from '@/lib/config';
 import { format } from 'date-fns';
 import {
@@ -208,8 +208,8 @@ export function EmployeeProfile() {
         setError(null);
 
         const [emp, leaves] = await Promise.all([
-          mockApi.getEmployeeById(user.orgId, id),
-          mockApi.getLeaves(user.orgId, id),
+          api.getEmployeeById(user.orgId, id),    
+          api.getLeaves(user.orgId, id),            
         ]);
 
         setEmployee(emp);
