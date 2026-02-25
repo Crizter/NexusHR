@@ -48,7 +48,7 @@ export function DashboardPage() {
           api.getLeaves(user.orgId),
           api.getEmployees(),         
         ]);
-
+        console.log(dashboardStats);
         setStats(dashboardStats);
 
         // ── Build recent activity feed from real data ──────────────────────

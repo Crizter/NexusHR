@@ -226,3 +226,71 @@ export const updatePayslipStatus = async (req, res) => {
   }
 };
 
+
+
+// ─── PATCH /api/payroll/bulk-lock ─────────────────────────────────────────────
+export const bulkLockPayslips = async (req, res) => {
+  try {
+    if (!ALLOWED_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Forbidden — HR Managers and Admins only' });
+    }
+
+    const { month, year } = req.body;
+    if (!month || !year) {
+      return res.status(400).json({ message: 'month and year are required' });
+    }
+
+    const result = await Payslip.updateMany(
+      {
+        orgId:             req.user.orgId,
+        'payPeriod.month': parseInt(month),
+        'payPeriod.year':  parseInt(year),
+        status:            'draft',
+      },
+      { $set: { status: 'processed' } }
+    );
+
+    return res.status(200).json({
+      message:       `${result.modifiedCount} payslip(s) locked successfully`,
+      modifiedCount: result.modifiedCount,
+    });
+
+  } catch (err) {
+    console.error('bulkLockPayslips error:', err.message);
+    return res.status(500).json({ message: 'Failed to bulk lock payslips' });
+  }
+};
+
+// ─── PATCH /api/payroll/bulk-pay ──────────────────────────────────────────────
+export const bulkPayPayslips = async (req, res) => {
+  try {
+    if (!ALLOWED_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Forbidden — HR Managers and Admins only' });
+    }
+
+    const { month, year } = req.body;
+    if (!month || !year) {
+      return res.status(400).json({ message: 'month and year are required' });
+    }
+
+    const result = await Payslip.updateMany(
+      {
+        orgId:             req.user.orgId,
+        'payPeriod.month': parseInt(month),
+        'payPeriod.year':  parseInt(year),
+        status:            'processed',
+      },
+      { $set: { status: 'paid', paymentDate: new Date() } }
+    );
+
+    return res.status(200).json({
+      message:       `${result.modifiedCount} payslip(s) marked as paid`,
+      modifiedCount: result.modifiedCount,
+    });
+
+  } catch (err) {
+    console.error('bulkPayPayslips error:', err.message);
+    return res.status(500).json({ message: 'Failed to bulk pay payslips' });
+  }
+};
+

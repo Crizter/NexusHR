@@ -10,13 +10,6 @@
     maxUsers: Number
   },
   settings: {
-    leavePolicy: {
-      casualLeaves: Number,
-      sickLeaves: Number
-    },
-    timezone: String
-  },
-  settings: {
       leavePolicy: {
         casualLeaves:  Number,
         sickLeaves:  Number,

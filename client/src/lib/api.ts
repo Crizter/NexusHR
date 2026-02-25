@@ -148,6 +148,13 @@ export interface AuthUser {
   role:  Role;
   token?: string;
 }
+export interface DashboardActivity {
+  id:        string;
+  type:      'leave_request' | 'leave_approved' | 'leave_rejected' | 'employee_added';
+  message:   string;
+  timestamp: string;   // ISO string from backend
+  user:      string;
+}
 
 export interface DashboardStats {
   totalEmployees:          number;
@@ -156,6 +163,7 @@ export interface DashboardStats {
   approvedLeavesThisMonth: number;
   totalLeavesThisMonth:    number;
   activeEmployees:         number;
+  recentActivity:          DashboardActivity[]; 
 }
 
 
@@ -521,7 +529,42 @@ export const api = {
     }
   },
 
+
+  async bulkLockPayslips(
+    month: number,
+    year:  number
+  ): Promise<{ message: string; modifiedCount: number }> {
+    try {
+      const response = await axiosInstance.patch<{ message: string; modifiedCount: number }>(
+        '/payroll/bulk-lock',
+        { month, year }
+      );
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+  async bulkPayPayslips(
+    month: number,
+    year:  number
+  ): Promise<{ message: string; modifiedCount: number }> {
+    try {
+      const response = await axiosInstance.patch<{ message: string; modifiedCount: number }>(
+        '/payroll/bulk-pay',
+        { month, year }
+      );
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+
+
 };
+
+
 
 
   

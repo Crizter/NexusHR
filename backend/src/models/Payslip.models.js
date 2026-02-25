@@ -42,11 +42,19 @@ payslipSchema.index(
   { unique: true }
 );
 
-payslipSchema.pre('save', function(next) {
-  this.netPay =
-    (this.earnings.baseSalary + this.earnings.bonus + this.earnings.allowances) -
-    (this.deductions.tax + this.deductions.healthInsurance + this.deductions.unpaidLeave);
-  return next();
+payslipSchema.pre('save', function() {
+  
+  const totalEarnings = 
+    (this.earnings?.baseSalary || 0) + 
+    (this.earnings?.bonus || 0) + 
+    (this.earnings?.allowances || 0);
+
+  const totalDeductions = 
+    (this.deductions?.tax || 0) + 
+    (this.deductions?.healthInsurance || 0) + 
+    (this.deductions?.unpaidLeave || 0);
+
+  this.netPay = totalEarnings - totalDeductions;
 });
 
 const Payslip = mongoose.model('Payslip', payslipSchema);
