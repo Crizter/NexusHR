@@ -36,6 +36,7 @@ import {
   ChevronUp,
   User,
   UserRoundPen,
+  Receipt,
   CircleDollarSign,
 } from 'lucide-react';
 import type { Permission } from '@/lib/config';
@@ -56,15 +57,16 @@ interface NavItem {
 const NAV_MAIN: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/profile', label: 'My Profile', icon: UserRoundPen  },
+    { href: '/my-payslips', label: 'My Payslips', icon: Receipt         },  // ← add (visible to all)
   { href: '/employees', label: 'Employees',  icon: Users,     permission: 'view_record'    },
   { href: '/leaves',    label: 'Leaves',     icon: Calendar,  permission: 'apply_leave'    },
   { href: '/reports',   label: 'Reports',    icon: FileText,  permission: 'view_record'    },
   {href:'/payroll', label: 'Payroll', icon: CircleDollarSign, permission: 'payroll_record' },
-
+  
 ];
 
 const NAV_ADMIN: NavItem[] = [
-  { href: '/settings',  label: 'Settings',   icon: Settings,  permission: 'admin_view'     },
+  { href: '/settings',  label: 'Settings',   icon: Settings,  permission: 'settings_view'     },
 ];
 
 // ─── Inner sidebar (consumes auth) ───────────────────────────────────────────

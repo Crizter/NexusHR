@@ -6,23 +6,39 @@ import type { Role } from './config';
 // ============================================================================
 
 export interface Organization {
-  _id:    string;
-  name:   string;
-  slug:   string;
+  _id: string;
+  name: string;
+  slug: string;
   subscription: {
-    plan:     'free' | 'pro' | 'enterprise';
-    status:   'active' | 'past_due';
+    plan: 'free' | 'pro' | 'enterprise';
+    status: 'active' | 'past_due';
     maxUsers: number;
   };
   settings: {
     leavePolicy: {
       casualLeaves: number;
-      sickLeaves:   number;
+      sickLeaves: number;
     };
     timezone: string;
+    payroll: {
+      currency: string;
+      payCycle: 'monthly' | 'bi-weekly';
+      taxId?: string;
+    };
   };
-  createdAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
+
+export interface UpdateOrganizationPayload {
+  name?:     string;
+  settings?: {
+    timezone?:    string;
+    leavePolicy?: { casualLeaves?: number; sickLeaves?: number };
+    payroll?:     { currency?: string; payCycle?: 'monthly' | 'bi-weekly'; taxId?: string };
+  };
+}
+
 
 export interface User {
   _id:          string;
@@ -432,11 +448,24 @@ export const api = {
   // ── Organization ─────────────────────────────────────────────────────────────
 
   /**
-   * GET /organizations/me
+   * GET /organization
    */
-  async getOrganization(_orgId: string): Promise<Organization> {
+
+  async getOrganization(): Promise<Organization> { 
     try {
-      const response = await axiosInstance.get<Organization>('/organizations/me');
+      const response = await axiosInstance.get<Organization>('/organization');
+      return response.data ; 
+
+    } catch (error) {
+      extractError(error) ; 
+    }
+  },
+  /** 
+   * PATCH /organization 
+   */
+   async updateOrganization(data: UpdateOrganizationPayload): Promise<Organization> {
+    try {
+      const response = await axiosInstance.patch<Organization>('/organization', data);
       return response.data;
     } catch (error) {
       extractError(error);

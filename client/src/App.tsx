@@ -8,9 +8,11 @@ import { EmployeeDirectory }   from '@/pages/EmployeeDirectory';
 import { EmployeeProfile }     from '@/pages/EmployeeProfile';
 import { ReportsPage }          from '@/pages/ReportsPage';
 import { LeaveManagement }     from '@/pages/LeaveManagement';
-import { PayrollDashboard } from './pages/PayrollDashboard';
+import { PayrollDashboard } from '@/pages/PayrollDashboard';
+import { OrganizationSettings } from '@/pages/OrganizationSettings';
 import { WelcomePage }         from '@/pages/WelcomePage';
-import { MyProfile } from './pages/MyProfile';
+import { MyPayslips } from '@/pages/MyPayslips';
+import { MyProfile } from '@/pages/MyProfile';
 import { Toaster } from './components/ui/sonner';
 import './index.css';
 
@@ -65,6 +67,21 @@ function App() {
             </ProtectedRoute>
           }/>
 
+           <Route path="/settings" element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <OrganizationSettings />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }/>
+
+               <Route path="/my-payslips" element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <MyPayslips />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }/>
 
 
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -315,16 +315,7 @@ export function DashboardPage() {
                 </Button>
               )}
 
-              {hasPermission('apply_leave') && (
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={() => navigate('/leaves/apply')}
-                >
-                  <Calendar className="h-4 w-4 mr-3" />
-                  Apply for Leave
-                </Button>
-              )}
+            
 
               {hasPermission('view_record') && (
                 <Button

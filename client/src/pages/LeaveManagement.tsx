@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api"; // ← real API
-import type { LeaveRequest } from "@/lib/api"; // ← real type
+import type { LeaveRequest, Organization } from "@/lib/api"; // ← real type
 import { toast } from "sonner"; // ← toast
 import { ApplyLeaveDialog } from "@/components/leaves/ApplyLeaveDialog";
 import { PERMISSIONS } from "@/lib/config";
@@ -174,6 +174,8 @@ export function LeaveManagement() {
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [applyDialogOpen, setApplyDialogOpen] = useState<boolean>(false);
+  const [leaveTotals, setLeaveTotals] = useState({casual:0, sick:0}) ; 
+
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchLeaves = useCallback(async () => {
@@ -181,23 +183,33 @@ export function LeaveManagement() {
     try {
       setLoading(true);
       setError(null);
-
+      const orgPromise = api.getOrganization();
       if (canApprove) {
-        const [personal, team, employeeProfile] = await Promise.all([
+        const [personal, team, employeeProfile, fetchedOrg] = await Promise.all([
           api.getLeaves(user.orgId, user.id),
           api.getLeaves(user.orgId),
           api.getEmployeeById(user.orgId, user.id), // ← fetch live balances
+          orgPromise,
         ]);
         setPersonalLeaves(personal);
         setTeamLeaves(team);
         setLeaveBalances(employeeProfile.leaveBalances); // ← set real balances
+       setLeaveTotals({
+          casual: fetchedOrg.settings.leavePolicy.casualLeaves,
+          sick: fetchedOrg.settings.leavePolicy.sickLeaves
+        });
       } else {
-        const [personal, employeeProfile] = await Promise.all([
+        const [personal, employeeProfile, fetchedOrg] = await Promise.all([
           api.getLeaves(user.orgId, user.id),
           api.getEmployeeById(user.orgId, user.id), // ← fetch live balances
+          orgPromise,
         ]);
         setPersonalLeaves(personal);
         setLeaveBalances(employeeProfile.leaveBalances); // ← set real balances
+        setLeaveTotals({
+          casual: fetchedOrg.settings.leavePolicy.casualLeaves,
+          sick: fetchedOrg.settings.leavePolicy.sickLeaves
+        });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load leaves");
@@ -220,7 +232,7 @@ export function LeaveManagement() {
     try {
       setActioningId(leaveId);
 
-      // ✅ Real API call
+      
       await api.updateLeaveStatus(
         user.orgId,
         leaveId,
@@ -229,7 +241,7 @@ export function LeaveManagement() {
         status === "approved" ? "Approved by manager" : "Rejected by manager",
       );
 
-      // ✅ Toast feedback
+      //  Toast feedback
       if (status === "approved") {
         toast.success("Leave approved", {
           description: `${employeeName}'s leave request has been approved.`,
@@ -295,14 +307,14 @@ export function LeaveManagement() {
         <BalanceCard
           label="Casual Leaves"
           balance={leaveBalances.casual}  
-          total={12}
+          total={leaveTotals.casual}
           colorClass="bg-blue-100"
           icon={<Calendar className="h-4 w-4 text-blue-600" />}
         />
         <BalanceCard
           label="Sick Leaves"
           balance={leaveBalances.sick}     
-          total={10}
+          total={leaveTotals.sick}
           colorClass="bg-green-100"
           icon={<Stethoscope className="h-4 w-4 text-green-600" />}
         />
