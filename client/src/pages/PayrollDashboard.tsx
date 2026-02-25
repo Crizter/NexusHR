@@ -21,7 +21,9 @@ import {
 import {
   DollarSign, Loader2, FileText,
   CheckCircle, Lock, Plus,
+  Search,
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MONTHS = [
@@ -92,6 +94,10 @@ export function PayrollDashboard() {
   const [isGenerating,   setIsGenerating]   = useState(false);
   const [actioningId,    setActioningId]    = useState<string | null>(null);
   const [selectedPayslip, setSelectedPayslip] = useState<Payslip | null>(null);
+  const [isBulkLocking, setIsBulkLocking] = useState(false);
+  const [isBulkPaying,  setIsBulkPaying]  = useState(false);
+  const [searchTerm,    setSearchTerm]    = useState('');
+
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchPayslips = useCallback(async () => {
@@ -111,6 +117,9 @@ export function PayrollDashboard() {
   useEffect(() => { fetchPayslips(); }, [fetchPayslips]);
 
   // ── Generate payroll ───────────────────────────────────────────────────────
+  
+
+
   const handleGenerate = async () => {
     try {
       setIsGenerating(true);
@@ -155,9 +164,65 @@ export function PayrollDashboard() {
     }
   };
 
+   // ── Filtered payslips for search ───────────────────────────────────────────
+  const filteredPayslips = payslips.filter(p => {
+    if (!searchTerm.trim()) return true;
+    if (typeof p.employeeId === 'string') return false;
+    const term  = searchTerm.toLowerCase();
+    const first = p.employeeId.profile.firstName.toLowerCase();
+    const last  = p.employeeId.profile.lastName.toLowerCase();
+    const email = p.employeeId.email.toLowerCase();
+    const id    = p.employeeId.displayId.toLowerCase();
+    return (
+      first.includes(term) ||
+      last.includes(term)  ||
+      `${first} ${last}`.includes(term) ||
+      email.includes(term) ||
+      id.includes(term)
+    );
+  });
+
+  // ── Bulk handlers ──────────────────────────────────────────────────────────
+  const handleBulkLock = async () => {
+    try {
+      setIsBulkLocking(true);
+      const result = await api.bulkLockPayslips(selectedMonth, selectedYear);
+      toast.success('Payslips locked', {
+        description: `${result.modifiedCount} draft payslip(s) have been locked.`,
+      });
+      await fetchPayslips();
+    } catch (err) {
+      toast.error('Bulk lock failed', {
+        description: err instanceof Error ? err.message : 'Unknown error',
+      });
+    } finally {
+      setIsBulkLocking(false);
+    }
+  };
+
+  const handleBulkPay = async () => {
+    try {
+      setIsBulkPaying(true);
+      const result = await api.bulkPayPayslips(selectedMonth, selectedYear);
+      toast.success('Payslips paid', {
+        description: `${result.modifiedCount} payslip(s) have been marked as paid.`,
+      });
+      await fetchPayslips();
+    } catch (err) {
+      toast.error('Bulk pay failed', {
+        description: err instanceof Error ? err.message : 'Unknown error',
+      });
+    } finally {
+      setIsBulkPaying(false);
+    }
+  };
+
+  // ── Derived counts for conditional bulk buttons ────────────────────────────
+  const draftCount     = payslips.filter(p => p.status === 'draft').length;
+  const processedCount = payslips.filter(p => p.status === 'processed').length;
+
   // ── Summary stats ──────────────────────────────────────────────────────────
   const totalNetPay    = payslips.reduce((sum, p) => sum + (p.netPay ?? 0), 0);
-  const draftCount     = payslips.filter(p => p.status === 'draft').length;
   const approvedCount  = payslips.filter(p => p.status === 'processed').length;
   const paidCount      = payslips.filter(p => p.status === 'paid').length;
 
@@ -177,6 +242,39 @@ export function PayrollDashboard() {
 
         {/* Period selectors */}
         <div className="flex items-center gap-2">
+
+           {/* Bulk Lock — only if drafts exist */}
+          {draftCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-blue-200 text-blue-700 hover:bg-blue-50"
+              disabled={isBulkLocking || isBulkPaying}
+              onClick={handleBulkLock}
+            >
+              {isBulkLocking
+                ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                : <Lock className="mr-1.5 h-3.5 w-3.5" />}
+              Lock All Drafts ({draftCount})
+            </Button>
+          )}
+
+          {/* Bulk Pay — only if processed exist */}
+          {processedCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-green-200 text-green-700 hover:bg-green-50"
+              disabled={isBulkPaying || isBulkLocking}
+              onClick={handleBulkPay}
+            >
+              {isBulkPaying
+                ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                : <CheckCircle className="mr-1.5 h-3.5 w-3.5" />}
+              Pay All Processed ({processedCount})
+            </Button>
+          )}
+
           <Select
             value={selectedMonth.toString()}
             onValueChange={(v) => setSelectedMonth(parseInt(v))}
@@ -267,8 +365,19 @@ export function PayrollDashboard() {
         </div>
       )}
 
-      {/* ── Payslip table ────────────────────────────────────────────────────── */}
-      {(isLoading || payslips.length > 0) && (
+          {/* ── Search bar ────────────────────────────────────────────────────── */}
+      <div className="relative w-full max-w-sm">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <Input
+          placeholder="Search by name, email or ID..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
+      {/* ── Table ─────────────────────────────────────────────────────────── */}
+      {!isLoading && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold text-gray-900">
@@ -294,7 +403,7 @@ export function PayrollDashboard() {
                   {isLoading ? (
                     <TableSkeleton />
                   ) : (
-                    payslips.map((payslip) => {
+                    filteredPayslips.map((payslip) => {
                       const emp  = typeof payslip.employeeId === 'object' ? payslip.employeeId : null;
                       const name = emp ? `${emp.profile.firstName} ${emp.profile.lastName}` : '—';
                       const id   = emp?.displayId ?? '';
@@ -387,7 +496,7 @@ export function PayrollDashboard() {
                     })
                   )}
                 </TableBody>
-              </Table>
+              </Table>  
             </div>
           </CardContent>
         </Card>

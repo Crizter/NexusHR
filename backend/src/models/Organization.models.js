@@ -38,6 +38,21 @@ const organizationSchema = new mongoose.Schema(
         type:    String,
         default: 'UTC',
       },
+      payroll: { 
+        currency : { 
+          type: String, 
+          default: 'USD',
+        },
+        payCycle: { 
+          type: String,
+          enum: ['monthly', 'bi-weekly'], 
+          default: 'monthly',
+        }, 
+        taxId: { 
+          type: String, 
+          trim: true,
+        }
+      },
     },
   },
   { timestamps: true }
