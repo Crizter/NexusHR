@@ -18,6 +18,7 @@ export const PERMISSIONS = {
   APPLY_LEAVE:      'apply_leave',
   UPDATE_LEAVE:     'update_leave',
   CANCEL_LEAVE:     'cancel_leave',
+  SETTINGS_VIEW:      'settings_view',
 } as const;
 
 export const ROLE_PERMISSIONS = {
@@ -34,6 +35,7 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.PAYROLL_RECORD,
     PERMISSIONS.LEAVE_APPROVE,
     PERMISSIONS.ADD_PROFILE,
+    PERMISSIONS.SETTINGS_VIEW,
   ],
 
   // manager can approve leaves + view/edit records but not payroll
