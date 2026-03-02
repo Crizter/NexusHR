@@ -30,6 +30,29 @@ export interface Organization {
   updatedAt: string;
 }
 
+export interface OrgAttendanceStat {
+  _id: {
+    date:  string;   // "YYYY-MM-DD"
+    year:  number;
+    month: number;
+  };
+  metrics: {
+    totalHeadcount: number;
+    present:        number;
+    onLeave:        number;
+    absent:         number;
+    attendanceRate: number;
+  };
+  departmentBreakdown: {
+    departmentId?:   string;
+    departmentName:  string;
+    headcount:       number;
+    present:         number;
+    onLeave:         number;
+  }[];
+}
+
+
 export interface UpdateOrganizationPayload {
   name?:     string;
   settings?: {
@@ -70,11 +93,9 @@ export interface User {
 export interface AttendanceLeave {
   _id:   string;
   type:  'casual_leave' | 'sick_leave';
-  dates: {
-    startDate: string;
-    endDate:   string;
-    totalDays: number;
-  };
+  start: string, 
+  end: string, 
+  days: number, 
 }
 
 
@@ -265,6 +286,22 @@ export const api = {
       extractError(error);
     }
   },
+
+  // ── Org-wide attendance materialized view (AttendanceDashboard) ───────────
+  async getOrgAttendance(year: number, month?: number): Promise<OrgAttendanceStat[]> {
+    try {
+      const params = new URLSearchParams({ year: String(year) });
+      if (month) params.append('month', String(month));   // optional month filter
+
+      const response = await axiosInstance.get<OrgAttendanceStat[]>(
+        `/reports/org-attendance?${params.toString()}`   // ← org-wide materialized view
+      );
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
 
 
   // ── Employees ───────────────────────────────────────────────────────────────

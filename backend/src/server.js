@@ -14,7 +14,7 @@ import reportRoutes from './routes/reportRoutes.js'  ;
 import profileRoutes from './routes/profileRoutes.js';
 import payrollRoutes from './routes/payrollRoutes.js';  
 import organizationRoutes from './routes/organizationRoutes.js'  ;
-
+import { attendanceJob } from './cron/attendanceJob.js';
 const app  = express();
 const PORT = process.env.PORT || 5000;
 
@@ -76,6 +76,7 @@ app.use((err, _req, res, _next) => {
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 const start = async () => {
   await connectDB();
+  attendanceJob() ; 
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV}`);

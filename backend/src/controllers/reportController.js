@@ -10,7 +10,7 @@ export const getMyAttendance = async (req, res) => {
     const orgId = new mongoose.Types.ObjectId(req.user.orgId);
     const employeeId = new mongoose.Types.ObjectId(req.user.id);
 
-    // FIX: Await the result and separate the stages into their own objects
+    //  Await the result and separate the stages into their own objects
     const attendance = await LeaveRequest.aggregate([
       {
         $match: {

@@ -1,0 +1,497 @@
+[{
+  "_id": {
+    "orgId": {
+      "$oid": "aaaaaaaaaaaaaaaaaaaaa001"
+    },
+    "date": "2026-02-20"
+  },
+  "departmentBreakdown": [
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0005"
+      },
+      "departmentName": null,
+      "headcount": 3,
+      "present": 3,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0003"
+      },
+      "departmentName": null,
+      "headcount": 9,
+      "present": 9,
+      "onLeave": 0
+    },
+    {
+      "departmentName": null,
+      "headcount": 1,
+      "present": 1,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0002"
+      },
+      "departmentName": null,
+      "headcount": 7,
+      "present": 7,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0001"
+      },
+      "departmentName": null,
+      "headcount": 6,
+      "present": 6,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0004"
+      },
+      "departmentName": null,
+      "headcount": 8,
+      "present": 8,
+      "onLeave": 0
+    }
+  ],
+  "lastCalculatedAt": {
+    "$date": "2026-02-27T12:59:00.316Z"
+  },
+  "metrics": {
+    "totalHeadcount": 34,
+    "present": 34,
+    "onLeave": 0,
+    "absent": 0,
+    "attendanceRate": 100
+  }
+},
+{
+  "_id": {
+    "orgId": {
+      "$oid": "aaaaaaaaaaaaaaaaaaaaa001"
+    },
+    "date": "2026-02-21"
+  },
+  "departmentBreakdown": [
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0001"
+      },
+      "departmentName": null,
+      "headcount": 6,
+      "present": 6,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0003"
+      },
+      "departmentName": null,
+      "headcount": 9,
+      "present": 9,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0004"
+      },
+      "departmentName": null,
+      "headcount": 8,
+      "present": 8,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0005"
+      },
+      "departmentName": null,
+      "headcount": 3,
+      "present": 3,
+      "onLeave": 0
+    },
+    {
+      "departmentName": null,
+      "headcount": 1,
+      "present": 1,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0002"
+      },
+      "departmentName": null,
+      "headcount": 7,
+      "present": 7,
+      "onLeave": 0
+    }
+  ],
+  "lastCalculatedAt": {
+    "$date": "2026-02-27T12:59:00.458Z"
+  },
+  "metrics": {
+    "totalHeadcount": 34,
+    "present": 34,
+    "onLeave": 0,
+    "absent": 0,
+    "attendanceRate": 100
+  }
+},
+{
+  "_id": {
+    "orgId": {
+      "$oid": "aaaaaaaaaaaaaaaaaaaaa001"
+    },
+    "date": "2026-02-22"
+  },
+  "departmentBreakdown": [
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0005"
+      },
+      "departmentName": null,
+      "headcount": 3,
+      "present": 3,
+      "onLeave": 0
+    },
+    {
+      "departmentName": null,
+      "headcount": 1,
+      "present": 1,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0003"
+      },
+      "departmentName": null,
+      "headcount": 9,
+      "present": 9,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0001"
+      },
+      "departmentName": null,
+      "headcount": 6,
+      "present": 6,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0002"
+      },
+      "departmentName": null,
+      "headcount": 7,
+      "present": 7,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0004"
+      },
+      "departmentName": null,
+      "headcount": 8,
+      "present": 8,
+      "onLeave": 0
+    }
+  ],
+  "lastCalculatedAt": {
+    "$date": "2026-02-27T12:59:00.498Z"
+  },
+  "metrics": {
+    "totalHeadcount": 34,
+    "present": 34,
+    "onLeave": 0,
+    "absent": 0,
+    "attendanceRate": 100
+  }
+},
+{
+  "_id": {
+    "orgId": {
+      "$oid": "aaaaaaaaaaaaaaaaaaaaa001"
+    },
+    "date": "2026-02-23"
+  },
+  "departmentBreakdown": [
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0002"
+      },
+      "departmentName": null,
+      "headcount": 7,
+      "present": 7,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0001"
+      },
+      "departmentName": null,
+      "headcount": 6,
+      "present": 5,
+      "onLeave": 1
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0004"
+      },
+      "departmentName": null,
+      "headcount": 8,
+      "present": 8,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0005"
+      },
+      "departmentName": null,
+      "headcount": 3,
+      "present": 3,
+      "onLeave": 0
+    },
+    {
+      "departmentName": null,
+      "headcount": 1,
+      "present": 1,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0003"
+      },
+      "departmentName": null,
+      "headcount": 9,
+      "present": 9,
+      "onLeave": 0
+    }
+  ],
+  "lastCalculatedAt": {
+    "$date": "2026-02-27T12:59:00.525Z"
+  },
+  "metrics": {
+    "totalHeadcount": 34,
+    "present": 33,
+    "onLeave": 1,
+    "absent": 0,
+    "attendanceRate": 97.06
+  }
+},
+{
+  "_id": {
+    "orgId": {
+      "$oid": "aaaaaaaaaaaaaaaaaaaaa001"
+    },
+    "date": "2026-02-24"
+  },
+  "departmentBreakdown": [
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0005"
+      },
+      "departmentName": null,
+      "headcount": 3,
+      "present": 3,
+      "onLeave": 0
+    },
+    {
+      "departmentName": null,
+      "headcount": 1,
+      "present": 1,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0003"
+      },
+      "departmentName": null,
+      "headcount": 9,
+      "present": 9,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0001"
+      },
+      "departmentName": null,
+      "headcount": 6,
+      "present": 5,
+      "onLeave": 1
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0002"
+      },
+      "departmentName": null,
+      "headcount": 7,
+      "present": 6,
+      "onLeave": 1
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0004"
+      },
+      "departmentName": null,
+      "headcount": 8,
+      "present": 8,
+      "onLeave": 0
+    }
+  ],
+  "lastCalculatedAt": {
+    "$date": "2026-02-27T12:59:00.544Z"
+  },
+  "metrics": {
+    "totalHeadcount": 34,
+    "present": 32,
+    "onLeave": 2,
+    "absent": 0,
+    "attendanceRate": 94.12
+  }
+},
+{
+  "_id": {
+    "orgId": {
+      "$oid": "aaaaaaaaaaaaaaaaaaaaa001"
+    },
+    "date": "2026-02-25"
+  },
+  "departmentBreakdown": [
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0003"
+      },
+      "departmentName": null,
+      "headcount": 9,
+      "present": 9,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0001"
+      },
+      "departmentName": null,
+      "headcount": 6,
+      "present": 5,
+      "onLeave": 1
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0004"
+      },
+      "departmentName": null,
+      "headcount": 8,
+      "present": 8,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0005"
+      },
+      "departmentName": null,
+      "headcount": 3,
+      "present": 3,
+      "onLeave": 0
+    },
+    {
+      "departmentName": null,
+      "headcount": 1,
+      "present": 1,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0002"
+      },
+      "departmentName": null,
+      "headcount": 7,
+      "present": 7,
+      "onLeave": 0
+    }
+  ],
+  "lastCalculatedAt": {
+    "$date": "2026-02-27T12:59:00.557Z"
+  },
+  "metrics": {
+    "totalHeadcount": 34,
+    "present": 33,
+    "onLeave": 1,
+    "absent": 0,
+    "attendanceRate": 97.06
+  }
+},
+{
+  "_id": {
+    "orgId": {
+      "$oid": "aaaaaaaaaaaaaaaaaaaaa001"
+    },
+    "date": "2026-02-26"
+  },
+  "departmentBreakdown": [
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0003"
+      },
+      "departmentName": null,
+      "headcount": 9,
+      "present": 9,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0001"
+      },
+      "departmentName": null,
+      "headcount": 6,
+      "present": 5,
+      "onLeave": 1
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0004"
+      },
+      "departmentName": null,
+      "headcount": 8,
+      "present": 8,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0005"
+      },
+      "departmentName": null,
+      "headcount": 3,
+      "present": 3,
+      "onLeave": 0
+    },
+    {
+      "departmentName": null,
+      "headcount": 1,
+      "present": 1,
+      "onLeave": 0
+    },
+    {
+      "departmentId": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbb0002"
+      },
+      "departmentName": null,
+      "headcount": 7,
+      "present": 7,
+      "onLeave": 0
+    }
+  ],
+  "lastCalculatedAt": {
+    "$date": "2026-02-27T12:59:00.569Z"
+  },
+  "metrics": {
+    "totalHeadcount": 34,
+    "present": 33,
+    "onLeave": 1,
+    "absent": 0,
+    "attendanceRate": 97.06
+  }
+}]
