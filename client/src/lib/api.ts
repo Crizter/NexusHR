@@ -30,6 +30,8 @@ export interface Organization {
   updatedAt: string;
 }
 
+
+
 export interface OrgAttendanceStat {
   _id: {
     date:  string;   // "YYYY-MM-DD"
@@ -61,6 +63,8 @@ export interface UpdateOrganizationPayload {
     payroll?:     { currency?: string; payCycle?: 'monthly' | 'bi-weekly'; taxId?: string };
   };
 }
+
+
 
 
 export interface User {
@@ -186,6 +190,17 @@ export interface DashboardStats {
   activeEmployees:         number;
   recentActivity:          DashboardActivity[]; 
 }
+
+export interface PayrollBatch {
+  _id:            string;
+  status:         'processing' | 'completed' | 'completed_with_errors' | 'failed';
+  totalEmployees: number;
+  processedCount: number;
+  failedCount:    number;
+  completedAt?:   string;
+}
+
+
 
 
 
@@ -522,9 +537,21 @@ export const api = {
   async generatePayroll(
     month: number,
     year:  number
-  ): Promise<{ message: string; generated: number; skipped: number }> {
+  //  Updated return type — now returns batchId not generated count
+  ): Promise<{ message: string; batchId: string; totalEmployees: number }> {
     try {
       const response = await axiosInstance.post('/payroll/generate', { month, year });
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+// — polls the batch progress
+    async getPayrollBatchStatus(batchId: string): Promise<PayrollBatch> {
+    try {
+      const response = await axiosInstance.get<PayrollBatch>(
+        `/payroll/status/${batchId}`
+      );
       return response.data;
     } catch (error) {
       extractError(error);

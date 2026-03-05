@@ -250,12 +250,6 @@ export function AttendanceDashboard({ selectedYear: propYear, onYearChange }: At
 
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">Attendance Analytics</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Organisation-wide attendance trends for {selectedYear}
-          </p>
-        </div>
 
         {/* Year selector */}
         <select

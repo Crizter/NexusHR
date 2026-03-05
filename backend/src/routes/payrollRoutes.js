@@ -3,10 +3,11 @@ import passport from 'passport';
 import {
   bulkLockPayslips,
   bulkPayPayslips,
-  generatePayroll,
+  generatePayrollDispatcher,
   getPayslips,
   updatePayslip,
-  updatePayslipStatus,
+  updatePayslipStatus,  
+  getPayrollBatchStatus,
 } from '../controllers/payrollController.js';
 
 const router  = express.Router();
@@ -21,7 +22,8 @@ router.use(protect);
 // PATCH  /api/payroll/:id/status  — advance status (HR/Admin)
 router.patch('/bulk-lock', bulkLockPayslips);
 router.patch('/bulk-pay', bulkPayPayslips) ; 
-router.post  ('/generate',      generatePayroll);
+router.post('/generate',generatePayrollDispatcher);
+router.get('/status/:batchId',getPayrollBatchStatus);
 router.get   ('/',              getPayslips);
 router.patch ('/:id/status',    updatePayslipStatus);   // ← must be before /:id
 router.patch ('/:id',           updatePayslip);

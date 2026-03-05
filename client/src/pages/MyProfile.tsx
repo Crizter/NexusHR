@@ -11,6 +11,7 @@ import { Button }  from '@/components/ui/button';
 import {
   Save, Lock, User, CheckCircle2, AlertCircle, Loader2,
 } from 'lucide-react';
+import { ProfilePictureUpload } from '@/components/profile/ProfilePictureUpload';
 
 // ─── Inline message (success or error) ───────────────────────────────────────
 interface MessageBannerProps {
@@ -70,7 +71,9 @@ export function MyProfile() {
   });
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [profileMessage,   setProfileMessage]   = useState<StatusMessage>(null);
-
+ const [avatarUrl, setAvatarUrl] = useState<string | null>(
+    (user as any)?.avatarUrl ?? null
+  );
   // ── Password form state ────────────────────────────────────────────────────
   const [password,         setPassword]         = useState<PasswordState>(EMPTY_PASSWORD);
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
@@ -123,6 +126,15 @@ export function MyProfile() {
     }
   };
 
+  // ──  called by ProfilePictureUpload on successful upload ────────────
+  const handleAvatarSuccess = (publicUrl: string) => {
+    setAvatarUrl(publicUrl);
+    // Also update the global auth context so the navbar avatar refreshes
+    setUser(prev => prev ? { ...prev, avatarUrl: publicUrl } as any : prev);
+  };
+
+
+
   // ── Submit: change password ────────────────────────────────────────────────
   const handlePasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -167,6 +179,10 @@ export function MyProfile() {
       setIsPasswordLoading(false);
     }
   };
+  const initials =
+    (profile.firstName.charAt(0) + profile.lastName.charAt(0)).toUpperCase() || '?';
+
+    
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -182,10 +198,12 @@ export function MyProfile() {
 
       {/* Avatar + display name row */}
       <div className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-lg font-bold text-indigo-600 select-none">
-          {profile.firstName.charAt(0).toUpperCase()}
-          {profile.lastName.charAt(0).toUpperCase()}
-        </div>
+       
+         <ProfilePictureUpload
+          currentAvatarUrl={avatarUrl}
+          initials={initials}
+          onSuccess={handleAvatarSuccess}
+        />
         <div>
           <p className="text-base font-semibold text-gray-900">
             {profile.firstName} {profile.lastName}
