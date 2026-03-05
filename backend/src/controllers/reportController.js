@@ -1,111 +1,118 @@
-import LeaveRequest from '../models/LeaveRequest.models.js';
+import LeaveRequest from "../models/LeaveRequest.models.js";
+import mongoose from 'mongoose';
 
 export const getMyAttendance = async (req, res) => {
   try {
-    const year      = parseInt(req.query.year) || new Date().getFullYear();
-    const yearStart = new Date(year, 0, 1);           // Jan 1
-    const yearEnd   = new Date(year, 11, 31, 23, 59, 59, 999); // Dec 31
+    const year = parseInt(req.query.year) || new Date().getFullYear();
+    const yearStart = new Date(Date.UTC(year, 0, 1));
+    const yearEnd = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999));
+    
+    const orgId = new mongoose.Types.ObjectId(req.user.orgId);
+    const employeeId = new mongoose.Types.ObjectId(req.user.id);
 
-    const leaves = await LeaveRequest.find({
-      employeeId: req.user.id,
-      orgId:      req.user.orgId,                     // tenant isolation
-      status:     'approved',
-      $or: [
-        { 'dates.startDate': { $gte: yearStart, $lte: yearEnd } },
-        { 'dates.endDate':   { $gte: yearStart, $lte: yearEnd } },
-        // leave that spans across the year boundary
-        {
-          'dates.startDate': { $lte: yearStart },
-          'dates.endDate':   { $gte: yearEnd   },
-        },
-      ],
-    }).select('type dates');
+    //  Await the result and separate the stages into their own objects
+    const attendance = await LeaveRequest.aggregate([
+      {
+        $match: {
+          orgId: orgId,
+          employeeId: employeeId,
+          status: "approved",
+          "dates.startDate": { $lte: yearEnd }, // Added $
+          "dates.endDate": { $gte: yearStart },   // Added $
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          type: 1,
+          start: "$dates.startDate",
+          end: "$dates.endDate",
+          days: "$dates.totalDays", // Removed the extra comma inside the string
+        }
+      },
+      {
+        $sort: { start: 1 }
+      }
+    ]);
 
-    return res.status(200).json(leaves);
-
+    res.status(200).json(attendance);
   } catch (err) {
-    console.error('getMyAttendance error:', err.message);
-    return res.status(500).json({ message: 'Failed to fetch attendance report' });
+    console.error("Scale Error:", err.stack);
+    return res.status(500).json({ message: "Error fetching attendance" });
   }
 };
 
-// get the organization stats 
 export const getOrganizationLeaveStats = async (req, res) => {
   try {
-    // ── RBAC ────────────────────────────────────────────────────────────────
-    const allowedRoles = ['hr_manager', 'super_admin'];
+    const allowedRoles = ["hr_manager", "super_admin"];
     if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Forbidden — HR Managers and Admins only' });
+      return res.status(403).json({ message: "Forbidden — Insufficient permissions" });
     }
 
-    const baseMatch = {
-      orgId:  req.user.orgId,
-      status: 'approved',
-    };
+    const orgId = new mongoose.Types.ObjectId(req.user.orgId);
 
-    const [leavesByType, leavesByDepartment] = await Promise.all([
-
-      // ── Aggregation 1: Total days grouped by leave type ─────────────────
-      LeaveRequest.aggregate([
-        { $match: baseMatch },
-        {
-          $group: {
-            _id:       '$type',
-            totalDays: { $sum: '$dates.totalDays' },
-            count:     { $sum: 1 },
-          },
-        },
-        {
-          $project: {
-            _id:       0,
-            type:      '$_id',
-            totalDays: 1,
-            count:     1,
-          },
-        },
-        { $sort: { type: 1 } },
-      ]),
-
-      // ── Aggregation 2: Total days grouped by department (with name) ──────
-      LeaveRequest.aggregate([
-        { $match: baseMatch },
-        {
-          $group: {
-            _id:       '$departmentId',
-            totalDays: { $sum: '$dates.totalDays' },
-            count:     { $sum: 1 },
-          },
-        },
-        {
-          $lookup: {
-            from:         'departments',        // MongoDB collection name
-            localField:   '_id',
-            foreignField: '_id',
-            as:           'departmentInfo',
-          },
-        },
-        {
-          $project: {
-            _id:            0,
-            departmentId:   '$_id',
-            departmentName: {
-              $ifNull: [
-                { $arrayElemAt: ['$departmentInfo.name', 0] },
-                'Unknown',
-              ],
+    // FIX: Await the result
+    const stats = await LeaveRequest.aggregate([
+      {
+        $match: { orgId: orgId, status: "approved" }, // Status should be string "approved", not 1
+      },
+      {
+        $facet: {
+          leavesByType: [
+            {
+              $group: {
+                _id: "$type",
+                totalDays: { $sum: "$dates.totalDays" },
+                count: { $sum: 1 },
+              },
             },
-            totalDays: 1,
-            count:     1,
-          },
+            {
+              $project: {
+                _id: 0,
+                type: "$_id",
+                totalDays: 1,
+                count: 1,
+              },
+            },
+            { $sort: { type: 1 } },
+          ],
+          leavesByDepartment: [
+            {
+              $group: {
+                _id: "$departmentId",
+                totalDays: { $sum: "$dates.totalDays" },
+                count: { $sum: 1 },
+              },
+            },
+            {
+              $lookup: {
+                from: "departments",
+                localField: "_id",
+                foreignField: "_id",
+                as: "dept",
+              },
+            },
+            { $unwind: { path: "$dept", preserveNullAndEmptyArrays: true } },
+            {
+              $project: {
+                _id: 0,
+                departmentId: "$_id",
+                departmentName: { $ifNull: ["$dept.name", "Unknown"] },
+                totalDays: 1,
+                count: 1,
+              },
+            },
+            { $sort: { totalDays: -1 } },
+          ],
         },
-        { $sort: { totalDays: -1 } },           // highest first
-      ]),
+      },
     ]);
 
-    return res.status(200).json({ leavesByType, leavesByDepartment });
-
+    // stats is an array, we want the first (and only) item
+    const result = stats[0] || { leavesByType: [], leavesByDepartment: [] };
+    res.status(200).json(result);
   } catch (err) {
-    console.error('getOrganizationLeaveStats error:', err.message);
-    return res.status(500).json({ message: 'Failed to fetch organization leave stats' });
+    console.error("getOrganizationLeaveStats Error:", err.stack);
+    return res.status(500).json({ message: "Failed to fetch organization stats" });
   }
 };

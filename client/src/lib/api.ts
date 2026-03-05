@@ -30,6 +30,31 @@ export interface Organization {
   updatedAt: string;
 }
 
+
+
+export interface OrgAttendanceStat {
+  _id: {
+    date:  string;   // "YYYY-MM-DD"
+    year:  number;
+    month: number;
+  };
+  metrics: {
+    totalHeadcount: number;
+    present:        number;
+    onLeave:        number;
+    absent:         number;
+    attendanceRate: number;
+  };
+  departmentBreakdown: {
+    departmentId?:   string;
+    departmentName:  string;
+    headcount:       number;
+    present:         number;
+    onLeave:         number;
+  }[];
+}
+
+
 export interface UpdateOrganizationPayload {
   name?:     string;
   settings?: {
@@ -38,6 +63,8 @@ export interface UpdateOrganizationPayload {
     payroll?:     { currency?: string; payCycle?: 'monthly' | 'bi-weekly'; taxId?: string };
   };
 }
+
+
 
 
 export interface User {
@@ -70,11 +97,9 @@ export interface User {
 export interface AttendanceLeave {
   _id:   string;
   type:  'casual_leave' | 'sick_leave';
-  dates: {
-    startDate: string;
-    endDate:   string;
-    totalDays: number;
-  };
+  start: string, 
+  end: string, 
+  days: number, 
 }
 
 
@@ -165,6 +190,17 @@ export interface DashboardStats {
   activeEmployees:         number;
   recentActivity:          DashboardActivity[]; 
 }
+
+export interface PayrollBatch {
+  _id:            string;
+  status:         'processing' | 'completed' | 'completed_with_errors' | 'failed';
+  totalEmployees: number;
+  processedCount: number;
+  failedCount:    number;
+  completedAt?:   string;
+}
+
+
 
 
 
@@ -265,6 +301,22 @@ export const api = {
       extractError(error);
     }
   },
+
+  // ── Org-wide attendance materialized view (AttendanceDashboard) ───────────
+  async getOrgAttendance(year: number, month?: number): Promise<OrgAttendanceStat[]> {
+    try {
+      const params = new URLSearchParams({ year: String(year) });
+      if (month) params.append('month', String(month));   // optional month filter
+
+      const response = await axiosInstance.get<OrgAttendanceStat[]>(
+        `/reports/org-attendance?${params.toString()}`   // ← org-wide materialized view
+      );
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
 
 
   // ── Employees ───────────────────────────────────────────────────────────────
@@ -485,9 +537,21 @@ export const api = {
   async generatePayroll(
     month: number,
     year:  number
-  ): Promise<{ message: string; generated: number; skipped: number }> {
+  //  Updated return type — now returns batchId not generated count
+  ): Promise<{ message: string; batchId: string; totalEmployees: number }> {
     try {
       const response = await axiosInstance.post('/payroll/generate', { month, year });
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+// — polls the batch progress
+    async getPayrollBatchStatus(batchId: string): Promise<PayrollBatch> {
+    try {
+      const response = await axiosInstance.get<PayrollBatch>(
+        `/payroll/status/${batchId}`
+      );
       return response.data;
     } catch (error) {
       extractError(error);

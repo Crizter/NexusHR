@@ -1,99 +1,192 @@
 import Payslip from '../models/Payslip.models.js';
 import User    from '../models/User.models.js';
+import PayrollBatch from '../models/Payrollbatch.models.js'
+import { dispatchPayrollToSQS } from '../services/payrollSqsService.js';
 
 const ALLOWED_ROLES = ['hr_manager', 'super_admin'];
 
+
+// TODO : UPDATE THE API IN FRONTEND FOR PARYOLL BATCH INSTEAD OF GENERATEPAYROLL 
+// OLD POST ROUTE 
+// // ─── POST /api/payroll/generate ───────────────────────────────────────────────
+// export const generatePayroll = async (req, res) => {
+//   try {
+//     if (!ALLOWED_ROLES.includes(req.user.role)) {
+//       return res.status(403).json({ message: 'Forbidden — HR Managers and Admins only' });
+//     }
+
+//     const { month, year } = req.body;
+
+//     if (!month || !year) {
+//       return res.status(400).json({ message: 'month and year are required' });
+//     }
+
+//     const parsedMonth = parseInt(month);
+//     const parsedYear  = parseInt(year);
+
+//     if (parsedMonth < 1 || parsedMonth > 12) {
+//       return res.status(400).json({ message: 'month must be between 1 and 12' });
+//     }
+
+//     // ── Fetch all active employees in the org ──────────────────────────────
+//     const employees = await User.find({
+//       orgId:     req.user.orgId,
+//       isDeleted: false,
+//     }).select('_id financial profile displayId departmentId');
+
+//     if (!employees.length) {
+//       return res.status(400).json({ message: 'No active employees found in your organisation' });
+//     }
+
+//     // ── Find employees who already have a payslip for this period ──────────
+//     const existingPayslips = await Payslip.find({
+//       orgId:              req.user.orgId,
+//       'payPeriod.month':  parsedMonth,
+//       'payPeriod.year':   parsedYear,
+//     }).select('employeeId');
+
+//     const alreadyProcessedIds = new Set(
+//       existingPayslips.map(p => p.employeeId.toString())
+//     );
+
+//     // ── Only generate for employees without a payslip this period ──────────
+//     const toGenerate = employees.filter(
+//       emp => !alreadyProcessedIds.has(emp._id.toString())
+//     );
+
+//     if (!toGenerate.length) {
+//       return res.status(200).json({
+//         message: 'Payroll already generated for all employees this period',
+//         generated: 0,
+//       });
+//     }
+
+//      const payslips = toGenerate.map(emp => {
+//       const baseSalary = emp.financial?.baseSalary ?? 0;
+
+//       return {
+//         orgId:        req.user.orgId,
+//         employeeId:   emp._id,
+//         departmentId: emp.departmentId,
+//         payPeriod: {
+//           month: parsedMonth,
+//           year:  parsedYear,
+//         },
+//         earnings: {
+//           baseSalary,
+//           bonus:      0,
+//           allowances: 0,
+//         },
+//         deductions: {
+//           tax:             0,
+//           healthInsurance: 0,
+//           unpaidLeave:     0,
+//         },
+//         netPay:      baseSalary,   // ← calculate here since insertMany skips pre-save
+//         status:      'draft',
+//         paymentDate: null,
+//       };
+//     });
+
+//     const inserted = await Payslip.insertMany(payslips);
+
+//     return res.status(201).json({
+//       message:   `Payroll generated for ${inserted.length} employee(s)`,
+//       generated: inserted.length,
+//       skipped:   alreadyProcessedIds.size,
+//     });
+
+//   } catch (err) {
+//     console.error('generatePayroll error:', err.message);
+//     return res.status(500).json({ message: 'Failed to generate payroll' });
+//   }
+// };
+
+
+
+// TODO : ADD THIS IN API.TS 
 // ─── POST /api/payroll/generate ───────────────────────────────────────────────
-export const generatePayroll = async (req, res) => {
+
+export const generatePayrollDispatcher = async (req,res) => { 
   try {
-    if (!ALLOWED_ROLES.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Forbidden — HR Managers and Admins only' });
-    }
+     if(!ALLOWED_ROLES.includes(req.user.role)){
+    return res.status(403).json({ message: 'Forbidden — HR Managers and Admins only' });
+  }
+  const { month, year } = req.body; 
+  const orgId = req.user.orgId ; 
+  if (!month || !year) return res.status(400).json({ message: 'month and year are required' });
+  // fetch all active employees 
+  const employees = await User.find({orgId , isDeleted: false}).select('_id').lean() ; 
 
-    const { month, year } = req.body;
+  if(employees.length === 0 ){
+    return res.status(400).json({ message: "No active employees found to process." });
+  }
 
-    if (!month || !year) {
-      return res.status(400).json({ message: 'month and year are required' });
-    }
+    const existingBatch = await PayrollBatch.findOne({
+      orgId,
+      'payPeriod.month': parseInt(month),
+      'payPeriod.year':  parseInt(year),
+      status: { $in: ['processing', 'completed'] },
+    });
 
-    const parsedMonth = parseInt(month);
-    const parsedYear  = parseInt(year);
-
-    if (parsedMonth < 1 || parsedMonth > 12) {
-      return res.status(400).json({ message: 'month must be between 1 and 12' });
-    }
-
-    // ── Fetch all active employees in the org ──────────────────────────────
-    const employees = await User.find({
-      orgId:     req.user.orgId,
-      isDeleted: false,
-    }).select('_id financial profile displayId departmentId');
-
-    if (!employees.length) {
-      return res.status(400).json({ message: 'No active employees found in your organisation' });
-    }
-
-    // ── Find employees who already have a payslip for this period ──────────
-    const existingPayslips = await Payslip.find({
-      orgId:              req.user.orgId,
-      'payPeriod.month':  parsedMonth,
-      'payPeriod.year':   parsedYear,
-    }).select('employeeId');
-
-    const alreadyProcessedIds = new Set(
-      existingPayslips.map(p => p.employeeId.toString())
-    );
-
-    // ── Only generate for employees without a payslip this period ──────────
-    const toGenerate = employees.filter(
-      emp => !alreadyProcessedIds.has(emp._id.toString())
-    );
-
-    if (!toGenerate.length) {
-      return res.status(200).json({
-        message: 'Payroll already generated for all employees this period',
-        generated: 0,
+    if (existingBatch) {
+      return res.status(409).json({
+        message: `Payroll for ${month}/${year} is already ${existingBatch.status}.`,
+        batchId: existingBatch._id,
       });
     }
 
-     const payslips = toGenerate.map(emp => {
-      const baseSalary = emp.financial?.baseSalary ?? 0;
+  const employeeIds = employees.map((emp) => emp._id.toString());
 
-      return {
-        orgId:        req.user.orgId,
-        employeeId:   emp._id,
-        departmentId: emp.departmentId,
-        payPeriod: {
-          month: parsedMonth,
-          year:  parsedYear,
-        },
-        earnings: {
-          baseSalary,
-          bonus:      0,
-          allowances: 0,
-        },
-        deductions: {
-          tax:             0,
-          healthInsurance: 0,
-          unpaidLeave:     0,
-        },
-        netPay:      baseSalary,   // ← calculate here since insertMany skips pre-save
-        status:      'draft',
-        paymentDate: null,
-      };
+  // progress bar tracker in mongodb
+  const batch = await PayrollBatch.create({
+      orgId,
+      payPeriod: { month: parseInt(month), year: parseInt(year) },
+      totalEmployees: employeeIds.length,
+      status: 'processing'
+    });
+  // sqs producer 
+    dispatchPayrollToSQS(batch._id, orgId, employeeIds, parseInt(year), parseInt(month))
+      .catch(async (err) => {
+        console.error('Background SQS dispatch failed:', err);
+        await PayrollBatch.findByIdAndUpdate(batch._id, {
+          status:       'failed',
+          errorMessage: err.message,
+        });
+      });
+
+  // send the response for react (instant, while the worker will process in background)
+  return res.status(202).json({
+    message: "Payroll processing started in the background.",
+      batchId: batch._id,
+      totalEmployees: employeeIds.length
+  });
+  } catch (error) {
+    console.error("Dispatcher Error:", error);
+    return res.status(500).json({ message: "Failed to start payroll generation." });
+  }
+}
+
+
+// TODO: ADD THIS IN API.TS
+// ─── 2. GET /api/payroll/status/:batchId (THE PROGRESS BAR ROUTE) ──────
+
+export const getPayrollBatchStatus = async(req,res) => { 
+  try {
+    const batch = await PayrollBatch.findOne({ 
+      _id: req.params.batchId, 
+      orgId: req.user.orgId // Ensure they only check their own org's batches
     });
 
-    const inserted = await Payslip.insertMany(payslips);
+    if (!batch) {
+      return res.status(404).json({ message: 'Payroll batch not found' });
+    }
 
-    return res.status(201).json({
-      message:   `Payroll generated for ${inserted.length} employee(s)`,
-      generated: inserted.length,
-      skipped:   alreadyProcessedIds.size,
-    });
+    return res.status(200).json(batch);
 
-  } catch (err) {
-    console.error('generatePayroll error:', err.message);
-    return res.status(500).json({ message: 'Failed to generate payroll' });
+  } catch (error) {
+    console.error("Error fetching batch status:", error);
+    return res.status(500).json({ message: "Failed to fetch batch status" });
   }
 };
 

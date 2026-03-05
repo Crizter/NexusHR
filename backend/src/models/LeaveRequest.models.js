@@ -65,5 +65,11 @@ const leaveRequestSchema = new mongoose.Schema(
 leaveRequestSchema.index({ orgId: 1, employeeId: 1, createdAt: -1 });
 // HR filtering by department + status (e.g., "all pending in Engineering")
 leaveRequestSchema.index({ orgId: 1, departmentId: 1, status: 1 });
+// EMPLOYEE ALL LEAVES WITHIN THE YEAR 
+leaveRequestSchema.index({orgId:1, employeeId:1,status:1,  "dates.startDate": 1, "dates.endDate": 1 });
+// ALL EMPLOYEES  BY STATUS 
+leaveRequestSchema.index({orgId:1, status:1 }) ;
+// Supports the Heatmap pipeline perfectly
+leaveRequestSchema.index({ orgId: 1, status: 1, 'dates.startDate': 1, 'dates.endDate': 1 });
 
 export default mongoose.model('LeaveRequest', leaveRequestSchema);

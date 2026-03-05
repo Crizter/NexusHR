@@ -95,25 +95,42 @@ export function AttendanceHeatmap({ year = getYear(new Date()) }: AttendanceHeat
       end:   endOfYear(yearDate),
     });
 
-    // Parse leave intervals once
-    const leaveIntervals = leaves.map(l => ({
-      type:  l.type,
-      start: new Date(l.dates.startDate),
-      end:   new Date(l.dates.endDate),
+     // Strip time completely — convert ISO string to YYYY-MM-DD integer for comparison
+    //    "2026-02-19T18:30:00.000Z" → date parts are UTC: year=2026, month=1, day=19
+    //    So we use UTC getters to avoid timezone shift turning Feb 19 into Feb 20
+    const toDateInt = (iso: string): number => {
+      const d = new Date(iso);
+      // Use UTC date parts — the backend stores midnight IST as 18:30 UTC previous day
+      // So   read the UTC date
+      return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
+    };
+
+    // Pre-compute intervals as integer ranges for O(1) comparison
+    const leaveRanges = leaves.map(l => ({
+      type:     l.type,
+      startInt: toDateInt(l.start),
+      endInt:   toDateInt(l.end),
     }));
 
-    // Determine status for each day
     const days: DayData[] = allDays.map(day => {
       if (day > today) return { date: day, status: 'future' };
       if (isWeekend(day)) return { date: day, status: 'weekend' };
 
-      const hit = leaveIntervals.find(({ start, end }) =>
-        isWithinInterval(day, { start, end })
-      );
+      // Convert calendar day to same integer format
+      const dayInt =
+        day.getFullYear() * 10000 +
+        (day.getMonth() + 1) * 100 +
+        day.getDate();
 
+      //  Simple integer range check — no timezone issues possible
+      const hit = leaveRanges.find(
+        ({ startInt, endInt }) => dayInt >= startInt && dayInt <= endInt
+      );
       return {
         date:   day,
-        status: hit ? hit.type : 'present',
+        status: hit
+          ? (hit.type === 'sick_leave' ? 'sick_leave' : 'casual_leave') as DayStatus
+          : 'present',
       };
     });
 

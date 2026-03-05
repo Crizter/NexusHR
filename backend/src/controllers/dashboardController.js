@@ -1,115 +1,134 @@
+import mongoose     from 'mongoose';
 import User         from '../models/User.models.js';
 import LeaveRequest from '../models/LeaveRequest.models.js';
 import Department   from '../models/Department.models.js';
 
 export const getDashboardStats = async (req, res) => {
   try {
-    const orgId = req.user.orgId;
-    const now   = new Date();
-
+    const orgId      = new mongoose.Types.ObjectId(req.user.orgId);
+    const now        = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const weekAgo    = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000);
-    const sevenDays  = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000);
+    const weekAgo    = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    // ── All queries run in parallel — single round trip ───────────────────────
-    const [
-      totalEmployees,
-      activeEmployees,
-      departmentsCount,
-      pendingLeaves,
-      approvedLeavesThisMonth,
-      totalLeavesThisMonth,
-      recentLeaves,
-      newEmployees,
-    ] = await Promise.all([
+    const [userResults, leaveResults, departmentsCount] = await Promise.all([
+      
+      User.aggregate([
+        { $match: { orgId, isDeleted: false } },
+        {
+          $facet: {
+            counts: [
+              {
+                $group: {
+                  _id: null,
+                  total: { $sum: 1 },
+                  active: { $sum: { $cond: [{ $gte: ["$lastLogin", weekAgo] }, 1, 0] } }
+                }
+              }
+            ],
+            activity: [
+              { $match: { createdAt: { $gte: weekAgo } } },
+              { $sort:  { createdAt: -1 } },
+              { $limit: 5 },
+              {
+                $project: {
+                  id:        { $concat: ["employee-", { $toString: "$_id" }] },
+                  type:      { $literal: "employee_added" },
+                  message:   { $literal: "joined the organization" },
+                  timestamp: "$createdAt",
+                  user:      { $trim: { input: { $concat: ["$profile.firstName", " ", "$profile.lastName"] } } }
+                }
+              }
+            ]
+          }
+        }
+      ]),
 
-      User.countDocuments({ orgId, isDeleted: false }),
+      LeaveRequest.aggregate([
+        { $match: { orgId } },
+        {
+          $facet: {
+            counts: [
+              {
+                $group: {
+                  _id: null,
+                  pending: { $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] } },                  
+                  approvedMonth: { 
+                    $sum: { 
+                      $cond: [
+                        { $and: [{ $eq: ["$status", "approved"] }, { $gte: ["$createdAt", monthStart] }] }, 
+                        1, 0
+                      ] 
+                    } 
+                  },
+                  totalMonth: { 
+                    $sum: { $cond: [{ $gte: ["$createdAt", monthStart] }, 1, 0] } 
+                  }
+                }
+              }
+            ],
+            activity: [
+              { $sort:  { createdAt: -1 } },
+              { $limit: 10 },
+              {
+                $lookup: {
+                  from: "users",
+                  localField: "employeeId",
+                  foreignField: "_id",
+                  as: "emp"
+                }
+              },
+              { $unwind: { path: "$emp", preserveNullAndEmptyArrays: true } },
+              {
+                $project: {
+                  id: { $concat: ["leave-", { $toString: "$_id" }] },
+                  type: {
+                    $switch: {
+                      branches: [
+                        { case: { $eq: ["$status", "pending"] },  then: "leave_request" },
+                        { case: { $eq: ["$status", "approved"] }, then: "leave_approved" },
+                        { case: { $eq: ["$status", "rejected"] }, then: "leave_rejected" }
+                      ],
+                      default: "leave_request"
+                    }
+                  },
+                  user: { $trim: { input: { $concat: ["$emp.profile.firstName", " ", "$emp.profile.lastName"] } } },
+                  timestamp: { $ifNull: ["$workflow.actionedAt", "$createdAt"] },
+                  message: {
+                    $concat: [
+                      { $replaceAll: { input: { $ifNull: ["$type", "leave"] }, find: "_", replacement: " " } },
+                      " request ",
+                      { $cond: [{ $eq: ["$status", "pending"] }, "submitted", "$status"] }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]),
 
-      User.countDocuments({ orgId, isDeleted: false, lastLogin: { $gte: weekAgo, $exists: true } }),
-
-      Department.countDocuments({ orgId }),
-
-      LeaveRequest.countDocuments({ orgId, status: 'pending' }),
-
-      LeaveRequest.countDocuments({
-        orgId,
-        status:    'approved',
-        createdAt: { $gte: monthStart },
-      }),
-
-      LeaveRequest.countDocuments({
-        orgId,
-        createdAt: { $gte: monthStart },
-      }),
-
-      // ── Recent leave activity (last 10, newest first) ──────────────────────
-      LeaveRequest.find({ orgId })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .populate('employeeId', 'profile.firstName profile.lastName')
-        .lean(),
-
-      // ── Employees who joined in last 7 days ───────────────────────────────
-      User.find({ orgId, createdAt: { $gte: sevenDays } })
-        .select('profile.firstName profile.lastName createdAt')
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .lean(),
+      Department.countDocuments({ orgId })
     ]);
 
-    // ── Build activity feed on the backend — frontend gets ready-to-render data
-    const activity = [];
+    const uData = userResults[0];
+    const lData = leaveResults[0];
 
-    recentLeaves.forEach(leave => {
-      const firstName = leave.employeeId?.profile?.firstName ?? 'Unknown';
-      const lastName  = leave.employeeId?.profile?.lastName  ?? '';
-      const name      = `${firstName} ${lastName}`.trim();
-      const leaveType = leave.type.replace(/_/g, ' ');
-
-      if (leave.status === 'pending') {
-        activity.push({
-          id:        `leave-${leave._id}`,
-          type:      'leave_request',
-          message:   `submitted a ${leaveType} request`,
-          timestamp: leave.createdAt,
-          user:      name,
-        });
-      } else if (leave.status === 'approved' || leave.status === 'rejected') {
-        activity.push({
-          id:        `leave-action-${leave._id}`,
-          type:      leave.status === 'approved' ? 'leave_approved' : 'leave_rejected',
-          message:   `${leaveType} request was ${leave.status}`,
-          timestamp: leave.workflow?.actionedAt ?? leave.updatedAt,
-          user:      name,
-        });
-      }
-    });
-
-    newEmployees.forEach(emp => {
-      activity.push({
-        id:        `employee-${emp._id}`,
-        type:      'employee_added',
-        message:   'joined the organization',
-        timestamp: emp.createdAt,
-        user:      `${emp.profile.firstName} ${emp.profile.lastName}`.trim(),
-      });
-    });
-
-    // Sort all activity newest first, cap at 6
-    activity.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const recentActivity = [...(uData.activity || []), ...(lData.activity || [])]
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 6);
 
     return res.status(200).json({
-      totalEmployees,
-      activeEmployees,
-      departmentsCount,
-      pendingLeaves,
-      approvedLeavesThisMonth,
-      totalLeavesThisMonth,
-      recentActivity: activity.slice(0, 6),
+      totalEmployees:          uData.counts[0]?.total         ?? 0,
+      activeEmployees:         uData.counts[0]?.active        ?? 0,
+      departmentsCount:        departmentsCount               ?? 0,
+      pendingLeaves:           lData.counts[0]?.pending       ?? 0,
+      approvedLeavesThisMonth: lData.counts[0]?.approvedMonth ?? 0,
+      totalLeavesThisMonth:    lData.counts[0]?.totalMonth    ?? 0,
+      recentActivity
     });
 
   } catch (err) {
-    console.error('getDashboardStats error:', err.message);
-    return res.status(500).json({ message: 'Failed to load dashboard stats' });
+    console.error('getDashboardStats Error:', err.stack);
+    return res.status(500).json({ message: 'Internal Server Error' });
   }
 };

@@ -63,5 +63,7 @@ userSchema.index({ orgId: 1, email: 1 }, { unique: true });
 // Fast department-level HR lookups
 userSchema.index({ orgId: 1, departmentId: 1 });
 
+// Supports both Pipeline A and the Retention Cohorts pipeline
+userSchema.index({ orgId: 1, isDeleted: 1, createdAt: 1 });
 
 export default mongoose.model('User', userSchema);

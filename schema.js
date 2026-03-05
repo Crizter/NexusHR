@@ -184,3 +184,68 @@
   createdAt: Date,
   updatedAt: Date
 }
+
+
+// ANALYTICS MODELS SCHEMA 
+// Shape of the MonthlyTrend Materialized View
+{
+  _id: { 
+    orgId: ObjectId, 
+    month: "2026-02" // YYYY-MM format for easy sorting
+  },
+  metrics: {
+    totalHeadcount: 524,
+    momGrowthPct: 4.2,        // Pre-calculated percentage!
+    totalSalaryBurn: 450000,  // Pre-calculated cost of base + allowances
+    leaveDaysTaken: 142       // For the Peak Leave Heatmap
+  },
+  // We can even store a pre-calculated mini-heatmap for the month
+  dailyLeaveHeatmap: [
+    { date: "2026-02-01", leaves: 5 },
+    { date: "2026-02-02", leaves: 12 }, // e.g., A long weekend
+    // ...
+  ],
+  lastCalculatedAt: Date
+}
+
+
+// Schema 2: DeptStats (Categorical & Comparison Data)
+
+
+{
+  _id: { 
+    orgId: ObjectId, 
+    departmentId: ObjectId 
+  },
+  departmentName: "Engineering", // Duplicate this here so UI doesn't need a $lookup!
+  metrics: {
+    headcount: 120,
+    avgEngagementScore: 8.4,  // The algorithmic score
+    globalPerformanceRank: 2, // Ranked against other departments
+  },
+  leaveTypeBreakdown: {
+    casual: 450,
+    sick: 120,
+    unpaid: 15
+  },
+  lastCalculatedAt: Date
+}
+
+// chema 3: OrgSummary (High-Level Snapshot)
+
+{
+  _id: ObjectId, // This IS the orgId
+  retentionCohorts: {
+    underOneYear: 45,
+    oneToThreeYears: 150,
+    threeToFiveYears: 80,
+    fivePlusYears: 30
+  },
+  burnoutPredictor: {
+    highRiskCount: 12, // Pre-counted number of people with 0 leaves in 8 months
+    atRiskEmployees: [ // Store the top 5 names directly for the dashboard UI
+      { employeeId: ObjectId, name: "John Doe", daysSinceLastLeave: 240 }
+    ]
+  },
+  lastCalculatedAt: Date
+}

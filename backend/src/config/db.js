@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 // ─── Connection state tracker ─────────────────────────────────────────────────
 let isConnected = false;
 
-const connectDB = async () => {
+export const connectDB = async () => {
   // Prevent duplicate connections 
   if (isConnected) {
     console.log(' MongoDB already connected');
