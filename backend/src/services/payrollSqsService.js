@@ -1,4 +1,3 @@
-// sqs-client.js
 
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { sqsClient } from "./sqsService.js";

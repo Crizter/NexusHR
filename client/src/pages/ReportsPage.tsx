@@ -3,12 +3,13 @@ import { useAuth } from '@/context/AuthContext';
 import { OrganizationLeaveSummary } from '@/components/reports/OrganizationLeaveSummary';
 import { AttendanceHeatmap } from '@/components/reports/AttendanceHeatmap';
 import { AttendanceDashboard } from '@/components/reports/AttendanceDashboard';
+import { DepartmentBurnReport }      from '@/components/reports/DepartmentBurnReport';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, Building2, User, Download, FileBarChart } from 'lucide-react';
+import { CalendarDays, Building2, User, Download, FileBarChart, DollarSign } from 'lucide-react';
 
 export function ReportsPage() {
   const { hasPermission } = useAuth();
@@ -82,8 +83,9 @@ export function ReportsPage() {
         </div>
       </div>
 
+   
       <Tabs defaultValue="organization" className="space-y-6">
-             <TabsList className="grid w-full max-w-lg grid-cols-3">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="organization" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Organization
@@ -95,6 +97,10 @@ export function ReportsPage() {
           <TabsTrigger value="attendance" className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
             Attendance
+          </TabsTrigger>
+          <TabsTrigger value="payroll-burn" className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4" />
+            Payroll Burn
           </TabsTrigger>
         </TabsList>
 
@@ -160,6 +166,16 @@ export function ReportsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+         <TabsContent value="payroll-burn">
+          <Card>
+       
+            <CardContent>
+              <DepartmentBurnReport />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
       </Tabs>
     </div>
   );

@@ -31,21 +31,25 @@ interface PayrollBatch {
 }
 
 interface PayrollGeneratorProps {
-  /** Called after a batch completes so the parent table can refresh */
-  onComplete: () => void;
-  selectedMonth: number;
-  selectedYear:  number;
-  onMonthChange: (m: number) => void;
-  onYearChange:  (y: number) => void;
+  onComplete:          () => void;
+  selectedMonth:       number;
+  selectedYear:        number;
+  onMonthChange:       (m: number) => void;
+  onYearChange:        (y: number) => void;
+  /** Registers the internal handleGenerate so parent can trigger it */
+  onRegisterTrigger?:  (fn: () => void) => void;
+  /** Hides the button — used when PrepView has its own CTA */
+  hidden?:             boolean;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
 export function PayrollGenerator({
   onComplete,
   selectedMonth,
   selectedYear,
   onMonthChange,
   onYearChange,
+  onRegisterTrigger,
+  hidden = false,
 }: PayrollGeneratorProps) {
   // ── State ──────────────────────────────────────────────────────────────────
   const [isGenerating,   setIsGenerating]   = useState(false);
@@ -95,6 +99,11 @@ export function PayrollGenerator({
       setIsGenerating(false);
     }
   };
+
+  // Register trigger with parent on mount / when handleGenerate changes
+  useEffect(() => {
+    onRegisterTrigger?.(handleGenerate);
+  }, [selectedMonth, selectedYear]);   // re-register when period changes
 
   // ── Polling — GET /api/payroll/status/:batchId ────────────────────────────
   useEffect(() => {
@@ -160,19 +169,21 @@ export function PayrollGenerator({
 
   return (
     <>
-      {/* ── Trigger button (rendered inline — parent controls month/year) ── */}
-      <Button
-        onClick={handleGenerate}
-        disabled={isGenerating || !!pollingBatchId}
-        size="sm"
-      >
-        {isGenerating
-          ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-          : <Plus className="mr-1.5 h-4 w-4" />}
-        Generate Payroll
-      </Button>
+      {/* ── Trigger button — hidden in Prep view ── */}
+      {!hidden && (
+        <Button
+          onClick={handleGenerate}
+          disabled={isGenerating || !!pollingBatchId}
+          size="sm"
+        >
+          {isGenerating
+            ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            : <Plus className="mr-1.5 h-4 w-4" />}
+          Generate Payroll
+        </Button>
+      )}
 
-      {/* ── Progress Modal ────────────────────────────────────────────────── */}
+      {/* ── Progress Modal — always rendered regardless of hidden ── */}
       {pollingBatchId && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center

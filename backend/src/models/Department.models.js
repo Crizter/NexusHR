@@ -16,6 +16,24 @@ const departmentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref:  'User',
     },
+    
+    payrollSettings: {
+    // How much tax to deduct if the user doesn't have a custom rate (e.g., 10 for 10%)
+    defaultTaxPercentage: { 
+      type: Number, 
+      default: 0 
+    }, 
+    // Fixed amount deducted for company health plans (e.g., 50 for $50)
+    healthInsuranceFlatRate: { 
+      type: Number, 
+      default: 0 
+    }, 
+    // How much to penalize per day of unpaid leave (e.g., 100 for $100/day)
+    unpaidLeaveDeductionPerDay: { 
+      type: Number, 
+      default: 0 
+    }
+  },
   },
   { timestamps: true }
 );

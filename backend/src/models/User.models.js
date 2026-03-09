@@ -1,60 +1,79 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
     orgId: {
-      type:     mongoose.Schema.Types.ObjectId,
-      ref:      'Organization',
-      required: [true, 'orgId (tenant) is required'],
-      index:    true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      required: [true, "orgId (tenant) is required"],
+      index: true,
     },
     displayId: {
-      type:  String,
-      trim:  true,
+      type: String,
+      trim: true,
     },
     email: {
-      type:      String,
-      required:  [true, 'Email is required'],
-      trim:      true,
+      type: String,
+      required: [true, "Email is required"],
+      trim: true,
       lowercase: true,
     },
     passwordHash: {
-      type:   String,
-      select: false,        // Never returned in queries by default
+      type: String,
+      select: false, // Never returned in queries by default
     },
     role: {
-      type:     String,
-      enum:     ['super_admin', 'hr_manager', 'employee','manager'],
-      required: [true, 'Role is required'],
-      default:  'employee',
+      type: String,
+      enum: ["super_admin", "hr_manager", "employee", "manager"],
+      required: [true, "Role is required"],
+      default: "employee",
     },
     departmentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref:  'Department',
+      ref: "Department",
     },
     profile: {
-      firstName:     { type: String, trim: true },
-      lastName:      { type: String, trim: true },
+      firstName: { type: String, trim: true },
+      lastName: { type: String, trim: true },
       contactNumber: { type: String, trim: true },
-      avatarUrl:     { type: String, trim: true },
+      avatarUrl: { type: String, trim: true },
     },
     financial: {
-      baseSalary: { type: Number, default: 0    },
-      currency:   { type: String, default: 'USD' },
+      baseSalary: { type: Number, default: 0 },
+      currency: { type: String, default: "USD" },
+      // ── Static Overrides (Overrides the Department settings if not null) ──
+      customTaxPercentage: {
+        type: Number,
+        default: null,
+      },
+      customHealthInsurance: {
+        type: Number,
+        default: null,
+      },
+
+      // ── Monthly Variables (Injected by HR, wiped by Worker after payroll) ──
+      bonusThisMonth: {
+        type: Number,
+        default: 0,
+      },
+      unpaidLeaveDaysThisMonth: {
+        type: Number,
+        default: 0,
+      },
     },
     leaveBalances: {
       casual: { type: Number, default: 12 },
-      sick:   { type: Number, default: 10 },
+      sick: { type: Number, default: 10 },
     },
     isDeleted: {
-      type:    Boolean,
+      type: Boolean,
       default: false,
     },
     lastLogin: {
       type: Date,
     },
-  },  
-  { timestamps: true }
+  },
+  { timestamps: true },
 );
 
 // ─── Indexes ──────────────────────────────────────────────────────────────────
@@ -66,4 +85,4 @@ userSchema.index({ orgId: 1, departmentId: 1 });
 // Supports both Pipeline A and the Retention Cohorts pipeline
 userSchema.index({ orgId: 1, isDeleted: 1, createdAt: 1 });
 
-export default mongoose.model('User', userSchema);
+export default mongoose.model("User", userSchema);

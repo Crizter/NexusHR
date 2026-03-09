@@ -14,20 +14,21 @@ const payrollBatchSchema = new Schema(
       year:  { type: Number, required: true, min: 2000, max: 2100 },
     },
 
+
     // Progress Bar Metrics
     totalEmployees: { type: Number, required: true },
     processedCount: { type: Number, default: 0 },
     failedCount:    { type: Number, default: 0 },
 
     // store the id of employees whose processsing crashed 
-    failedEmployeeId:[ { 
+    failedEmployeeIds:[ { 
         type: Schema.Types.ObjectId,
-        ref: 'Users',
+        ref: 'User',
     }],
 
     status: { 
       type: String, 
-      enum: ['processing', 'completed', 'failed'], 
+      enum: ['processing', 'completed','completed_with_errors', 'failed'], 
       default: 'processing' 
     },
     completedAt: {
@@ -40,6 +41,8 @@ const payrollBatchSchema = new Schema(
    }
 )
 
-payrollBatchSchema.index({orgId: 1, 'payPeriod.year': -1, 'payPeriod.month': -1})
+payrollBatchSchema.index({orgId: 1, 'payPeriod.year': -1, 'payPeriod.month': -1}, 
+  {unique:true}
+)
 
 export default mongoose.model('PayrollBatch', payrollBatchSchema);

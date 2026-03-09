@@ -1,7 +1,8 @@
 import express    from 'express';
 import passport   from 'passport';
 import { getMyAttendance, getOrganizationLeaveStats } from '../controllers/reportController.js';
-import { getOrgAttendance } from '../controllers/analyticsController.js';
+import { getOrgAttendance,getDepartmentSalaryBurn } from '../controllers/analyticsController.js';
+
 const router  = express.Router();
 const protect = passport.authenticate('jwt', { session: false });
 
@@ -15,6 +16,7 @@ router.get('/summary',protect,getOrganizationLeaveStats);
 // ─────────────────────────────────────────────────────────────────────────────
 
 router.get('/org-attendance', protect, getOrgAttendance);
+router.get('/department-burn',protect,getDepartmentSalaryBurn) ; 
 
 
 export default router;
