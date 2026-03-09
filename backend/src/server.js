@@ -13,6 +13,7 @@ import departmentRoutes from './routes/departmentRoutes.js';
 import reportRoutes from './routes/reportRoutes.js'  ;
 import profileRoutes from './routes/profileRoutes.js';
 import payrollRoutes from './routes/payrollRoutes.js';  
+import paySlipRoutes from './routes/payslipRoutes.js';
 import organizationRoutes from './routes/organizationRoutes.js'  ;
 import { attendanceJob } from './cron/attendanceJob.js';
 const app  = express();
@@ -49,6 +50,7 @@ app.use('/api/reports', reportRoutes) ;
 app.use('/api/profile', profileRoutes);
 app.use('/api/payroll', payrollRoutes); 
 app.use('/api/organization',organizationRoutes);
+app.use('/api/payslips',paySlipRoutes);
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
     console.log('res',res) ; 

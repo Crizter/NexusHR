@@ -5,6 +5,7 @@ import {
   getEmployeeById,
   addEmployee,
   deleteEmployee,
+  updateUserMonthlyVars,
 } from '../controllers/employeeController.js';
 
 const router = express.Router();
@@ -17,5 +18,9 @@ router.route('/')
 router.route('/:id')
   .get(getEmployeeById)
   .delete(deleteEmployee);
+
+
+// PATCH /api/users/:id/monthly-vars
+router.patch('/:id/monthly-vars', updateUserMonthlyVars);
 
 export default router;

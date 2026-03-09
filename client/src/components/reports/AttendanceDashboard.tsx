@@ -104,14 +104,7 @@ export function AttendanceDashboard({ selectedYear: propYear, onYearChange }: At
       try {
         setLoading(true);
         setError(null);
-
-        console.log('[AttendanceDashboard] Fetching year:', selectedYear);
-
         const data = await api.getOrgAttendance(selectedYear);
-
-        console.log('[AttendanceDashboard] Raw API response:', data);
-        console.log('[AttendanceDashboard] Record count:', data?.length ?? 0);
-
         //  Guard — API might return null/undefined on empty result
         setAttendanceData(Array.isArray(data) ? data : []);
       } catch (err) {

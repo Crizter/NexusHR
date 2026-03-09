@@ -1,223 +1,464 @@
 import mongoose from "mongoose";
 import {
-  SQSClient,
   ReceiveMessageCommand,
   DeleteMessageCommand,
 } from "@aws-sdk/client-sqs";
-import User from "../models/User.models.js";
-import Payslip from "../models/Payslip.models.js";
-import PayrollBatch from "../models/Payrollbatch.models.js";
-import { sqsClient } from "../services/sqsService.js";
-import connectDB from "../config/db.js";
-
-import "dotenv/config"; // Ensure env vars are loaded
+import User                     from "../models/User.models.js";
+import Payslip                  from "../models/Payslip.models.js";
+import PayrollBatch             from "../models/Payrollbatch.models.js";
+import MonthlyDepartmentSummary from "../models/analytics/MonthlyDepartmentSummary.models.js";
+import { sqsClient }            from "../services/sqsService.js";
+import connectDB                from "../config/db.js";
+import { dispatchPdfGeneration } from "../services/pdfSqsService.js";  
+import "dotenv/config";
 
 const QUEUE_URL = process.env.SQS_PAYROLL_QUEUE_URL;
 
-// ── Graceful shutdown flag ────────────────────────────────────────────────────
-// When SIGTERM/SIGINT is received (e.g. docker stop, pm2 restart),
-// we finish the current message then exit cleanly instead of being killed mid-write
 let isShuttingDown = false;
+process.on("SIGTERM", () => { isShuttingDown = true; });
+process.on("SIGINT",  () => { isShuttingDown = true; });
 
-process.on("SIGTERM", () => {
-  console.log(
-    "[Worker] SIGTERM received — finishing current message then exiting...",
-  );
-  isShuttingDown = true;
-});
-process.on("SIGINT", () => {
-  console.log(
-    "[Worker] SIGINT received — finishing current message then exiting...",
-  );
-  isShuttingDown = true;
-});
-
-// database operation for processing the payroll calculations
-// 2. The Core Processing Logic for ONE message
-const processMessage = async (messageBody) => {
-  let batchId, orgId, year, month, employeeIds;
-
-  // ── Parse payload safely ──────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// checkAndFinalizeBatch — Evaluates if the batch is 100% done and triggers summary
+// ─────────────────────────────────────────────────────────────────────────────
+const checkAndFinalizeBatch = async (batchId, orgId, month, year) => {
   try {
-    ({ batchId, orgId, year, month, employeeIds } = JSON.parse(messageBody));
-  } catch (parseErr) {
-    // Malformed JSON — log and return false so the message gets deleted
-    // (re-queuing a broken message will never succeed)
-    console.error("[Worker] Malformed SQS message body:", parseErr.message);
-    return false;
-  }
-
-  try {
-    // A. Fetch the employees' financial data
-    const employees = await User.find({ _id: { $in: employeeIds } })
-      .select("_id departmentId financial")
-      .lean();
-    if (employees.length === 0) {
-      console.warn(`[Worker] No employees found for ids: ${employeeIds}`);
-      // Still increment processedCount so batch completion check works
-      await PayrollBatch.updateOne(
-        { _id: batchId },
-        { $inc: { processedCount: employeeIds.length } },
-      );
-      return true;
-    }
-    // B. Build the BulkWrite Array
-    const bulkOperations = employees.map((emp) => {
-      const baseSalary = emp.financial?.baseSalary || 0;
-
-      // TODO :  Fetch approved unpaid leaves here and calculate deductions
-      const tax = 0;
-      const healthInsurance = 0;
-      const unpaidLeave = 0;
-
-      const netPay = baseSalary - (tax + healthInsurance + unpaidLeave);
-
-      return {
-        updateOne: {
-          // IDEMPOTENCY: Match exactly on these 4 fields so we never double-pay!
-          filter: {
-            orgId,
-            employeeId: emp._id,
-            "payPeriod.month": month,
-            "payPeriod.year": year,
-          },
-          update: {
-            $set: {
-              departmentId: emp.departmentId,
-              earnings: { baseSalary, bonus: 0, allowances: 0 },
-              deductions: { tax, healthInsurance, unpaidLeave },
-              netPay,
-              status: "draft",
-            },
-          },
-          upsert: true, // If it doesn't exist, create it. If it does, overwrite it.
-        },
-      };
-    });
-
-    // C. Execute the massive write to MongoDB in ONE network trip
-    if (bulkOperations.length > 0) {
-      await Payslip.bulkWrite(bulkOperations);
-    }
-
-    // D. Update the Progress Bar Tracker
-    await PayrollBatch.updateOne(
-      { _id: batchId },
-      { $inc: { processedCount: employeeIds.length } }, // Atomic increment!
-    );
-
-    // ── E. Check if entire batch is now complete ──────────────────────────────
-    // Fetch fresh — another worker chunk may have just finished too
     const batch = await PayrollBatch.findById(batchId)
       .select("totalEmployees processedCount failedCount")
       .lean();
 
-    if (batch) {
-      const totalHandled =
-        (batch.processedCount ?? 0) + (batch.failedCount ?? 0);
-      if (totalHandled >= batch.totalEmployees) {
-        const finalStatus =
-          (batch.failedCount ?? 0) === 0
-            ? "completed"
-            : "completed_with_errors";
-        await PayrollBatch.updateOne(
-          { _id: batchId },
-          {
-            status: finalStatus,
-            completedAt: new Date(),
-          },
-        );
-        console.log(
-          `[Worker] Batch ${batchId} — ${finalStatus} (${batch.totalEmployees} employees)`,
-        );
+    if (!batch) return;
+
+    const totalHandled = (batch.processedCount ?? 0) + (batch.failedCount ?? 0);
+
+    // If we have processed or failed ALL employees, wrap it up!
+    if (totalHandled >= batch.totalEmployees) {
+      const finalStatus = (batch.failedCount ?? 0) === 0 ? "completed" : "completed_with_errors";
+
+      await PayrollBatch.updateOne(
+        { _id: batchId },
+        { status: finalStatus, completedAt: new Date() }
+      );
+
+      console.log(`[Worker] Batch ${batchId} — ${finalStatus} (${batch.totalEmployees} employees)`);
+
+      // ── Materialize the analytics summary only on full success ──
+      if (finalStatus === "completed") {
+        console.log(`[Worker] Generating materialized report for ${month}/${year}...`);
+        await generateMaterializedSummary(orgId, month, year);
+        console.log(`[Worker] Materialized report done!`);
       }
     }
-
-    console.log(
-      ` [Worker] Processed ${employeeIds.length} payslips for Batch ${batchId}`,
-    );
-    return true; // Success!
   } catch (error) {
-    console.error(
-      ` [Worker Error] Failed to process chunk for Batch ${batchId}:`,
-      error,
-    );
-
-    // If a chunk fails, log it in the tracker so HR knows exactly who failed
-    await PayrollBatch.updateOne(
-      { _id: batchId },
-      {
-        $inc: { failedCount: employeeIds.length },
-        $addToSet: { failedEmployeeIds: { $each: employeeIds } },
-      },
-    );
-    return false; // Failed, but we handled it gracefully.
+    console.error(`[Worker] Error finalizing batch ${batchId}:`, error.message);
   }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// deleteMessage — removes message from SQS after successful or failed processing
-// CRITICAL — if skipped, SQS re-delivers after visibilityTimeout → double pay
+// THE CALCULATION ENGINE
+// All math runs inside MongoDB — zero Node.js memory bloat
+// ─────────────────────────────────────────────────────────────────────────────
+const calculatePayroll = async (employeeIds) => {
+  return User.aggregate([
+
+    // ── Stage 1: Narrow down to this chunk's employees only ──────────────────
+    {
+      $match: {
+        _id: { $in: employeeIds.map(id => new mongoose.Types.ObjectId(id)) },
+      },
+    },
+
+    // ── Stage 2: Join Department to get payrollSettings ──────────────────────
+    // LEFT join — employees with no department still come through (as empty array)
+    {
+      $lookup: {
+        from:         "departments",   // MongoDB collection name (lowercased plural)
+        localField:   "departmentId",
+        foreignField: "_id",
+        as:           "department",
+      },
+    },
+
+    // ── Stage 3: Flatten the department array ────────────────────────────────
+    // preserveNullAndEmptyArrays: true means employees with NO department
+    // are kept rather than dropped — their dept fields just become null
+    {
+      $unwind: {
+        path:                       "$department",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    // ── Stage 4: THE MATH — all calculations as MongoDB expressions ──────────
+    {
+      $addFields: {
+
+        // gross = baseSalary + bonusThisMonth
+        // $ifNull guards against missing fields — defaults to 0
+        _grossPay: {
+          $add: [
+            { $ifNull: ["$financial.baseSalary",      0] },
+            { $ifNull: ["$financial.bonusThisMonth",  0] },
+          ],
+        },
+
+        // Tax % — use employee's custom rate if set, else fall back to dept default
+        // $cond: if customTaxPercentage !== null → use it, else use dept default
+        _appliedTaxPct: {
+          $cond: {
+            if:   { $ne: [{ $ifNull: ["$financial.customTaxPercentage", null] }, null] },
+            then: "$financial.customTaxPercentage",
+            else: { $ifNull: ["$department.payrollSettings.defaultTaxPercentage", 0] },
+          },
+        },
+
+        // Health insurance — employee custom flat rate overrides dept flat rate
+        _healthInsurance: {
+          $cond: {
+            if:   { $ne: [{ $ifNull: ["$financial.customHealthInsurance", null] }, null] },
+            then: "$financial.customHealthInsurance",
+            else: { $ifNull: ["$department.payrollSettings.healthInsuranceFlatRate", 0] },
+          },
+        },
+
+        // Unpaid leave deduction = days * perDayRate (from dept settings)
+        _unpaidLeaveDeduction: {
+          $multiply: [
+            { $ifNull: ["$financial.unpaidLeaveDaysThisMonth",            0] },
+            { $ifNull: ["$department.payrollSettings.unpaidLeaveDeductionPerDay", 0] },
+          ],
+        },
+      },
+    },
+
+    // ── Stage 5: Use the intermediate fields to compute tax + netPay ─────────
+    // Split into a second $addFields so we can reference _grossPay and _appliedTaxPct
+    {
+      $addFields: {
+
+        // taxAmount = grossPay × (taxPct / 100)
+        _taxAmount: {
+          $multiply: [
+            "$_grossPay",
+            { $divide: ["$_appliedTaxPct", 100] },
+          ],
+        },
+      },
+    },
+
+    // ── Stage 6: Final netPay = grossPay - (tax + health + unpaidLeave) ──────
+    {
+      $addFields: {
+        _netPay: {
+          $subtract: [
+            "$_grossPay",
+            {
+              $add: [
+                "$_taxAmount",
+                "$_healthInsurance",
+                "$_unpaidLeaveDeduction",
+              ],
+            },
+          ],
+        },
+      },
+    },
+
+    // ── Stage 7: Clean output — only return what we need ────────────────────
+    {
+      $project: {
+        _id:          1,
+        departmentId: 1,
+
+        // Monthly variables — needed to decide whether to reset them
+        bonusThisMonth:           "$financial.bonusThisMonth",
+        unpaidLeaveDaysThisMonth: "$financial.unpaidLeaveDaysThisMonth",
+
+        // Structured exactly as the Payslip schema expects
+        earnings: {
+          baseSalary: { $ifNull: ["$financial.baseSalary", 0] },
+          bonus:      { $ifNull: ["$financial.bonusThisMonth", 0] },
+          allowances: {$literal: 0},
+        },
+        deductions: {
+          tax:             { $round: ["$_taxAmount",            2] },
+          healthInsurance: { $round: ["$_healthInsurance",      2] },
+          unpaidLeave:     { $round: ["$_unpaidLeaveDeduction", 2] },
+        },
+        netPay:       { $round: ["$_netPay",    2] },
+        grossPay:     { $round: ["$_grossPay",  2] },
+        appliedTaxPct: "$_appliedTaxPct",
+      },
+    },
+  ]);
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// processMessage — called once per SQS message (one chunk of employees)
+// ─────────────────────────────────────────────────────────────────────────────
+const processMessage = async (messageBody) => {
+  let batchId, orgId, year, month, employeeIds;
+
+  try {
+    ({ batchId, orgId, year, month, employeeIds } = JSON.parse(messageBody));
+  } catch (parseErr) {
+    console.error("[Worker] Malformed SQS message body:", parseErr.message);
+    return false;   // delete the poison pill — retrying won't help
+  }
+
+  console.log(
+    `[Worker] Processing chunk — batchId=${batchId} | employees=${employeeIds.length} | ${month}/${year}`
+  );
+
+  try {
+    // ── A. Run the calculation engine ────────────────────────────────────────
+    const calculated = await calculatePayroll(employeeIds);
+
+    if (calculated.length === 0) {
+      console.warn(`[Worker] No employees found for ids: ${employeeIds}`);
+      await PayrollBatch.updateOne(
+        { _id: batchId },
+        { $inc: { processedCount: employeeIds.length } }
+      );
+      await checkAndFinalizeBatch(batchId, orgId, month, year);
+      return true;
+    }
+
+    // ── B. Build BOTH bulkWrite arrays in one pass ───────────────────────────
+    const payslipOps = [];
+    const userResetOps = [];   // only populated when monthly variables need wiping
+
+    for (const emp of calculated) {
+      // ── Payslip upsert ──────────────────────────────────────────────────
+      payslipOps.push({
+        updateOne: {
+          // Idempotency key — same 4 fields used in the worker improvement
+          filter: {
+            orgId,
+            employeeId:        emp._id,
+            "payPeriod.month": month,
+            "payPeriod.year":  year,
+          },
+          update: {
+            $set: {
+              batchId,
+              departmentId: emp.departmentId ?? null,
+              earnings:     emp.earnings,
+              deductions:   emp.deductions,
+              netPay:       emp.netPay,
+              status:       "draft",
+              processedAt:  new Date(),
+            },
+          },
+          upsert: true,
+        },
+      });
+
+      // ── User monthly variable reset ──────────────────────────────────────
+      // Only reset if non-zero — avoids unnecessary write ops
+      const needsReset =
+        (emp.bonusThisMonth           ?? 0) > 0 ||
+        (emp.unpaidLeaveDaysThisMonth ?? 0) > 0;
+
+      if (needsReset) {
+        userResetOps.push({
+          updateOne: {
+            filter: { _id: emp._id },
+            update: {
+              $set: {
+                "financial.bonusThisMonth":           0,
+                "financial.unpaidLeaveDaysThisMonth": 0,
+              },
+            },
+          },
+        });
+      }
+    }
+
+    // ── C. Fire both bulkWrites in parallel ──────────────────────────────────
+    // Promise.all — both writes hit MongoDB simultaneously
+    const [payslipResult] = await Promise.all([
+      payslipOps.length > 0
+        ? Payslip.bulkWrite(payslipOps, { ordered: false })
+        : Promise.resolve(null),
+
+      userResetOps.length > 0
+        ? User.bulkWrite(userResetOps, { ordered: false })
+        : Promise.resolve(null),
+    ]);
+
+    console.log(
+      `[Worker]  ${calculated.length} payslips written | ${userResetOps.length} monthly vars reset`
+    );
+
+        // ── D. Dispatch payslip IDs to PDF queue ─────────────────────────────────
+    // bulkWrite upsert result contains:
+    //   insertedIds  — brand new payslips (first run)
+    //   upsertedIds  — also new docs created via upsert (same as insertedIds in practice)
+    // We fetch the actual _ids from MongoDB directly — most reliable approach
+    // regardless of whether this was an insert or an update.
+    if (payslipResult) {
+      const freshPayslips = await Payslip.find(
+        {
+          orgId,
+          employeeId:        { $in: calculated.map(e => e._id) },
+          "payPeriod.month": month,
+          "payPeriod.year":  year,
+        },
+        { _id: 1 }   // only fetch _id — no need for full documents
+      ).lean();
+
+      const payslipIds = freshPayslips.map(p => p._id.toString());
+
+      if (payslipIds.length > 0) {
+        await dispatchPdfGeneration(payslipIds);
+        console.log(`[Worker]  Dispatched ${payslipIds.length} payslip IDs to PDF queue.`);
+      }
+    }
+
+
+     // ── E. Atomically increment processedCount ───────────────────────────────
+    await PayrollBatch.updateOne(
+      { _id: batchId },
+      { $inc: { processedCount: calculated.length } }
+    );
+    await checkAndFinalizeBatch(batchId, orgId, month, year);
+
+    return true;
+
+  } catch (error) {
+    console.error(`[Worker]  Chunk failed for batch ${batchId}:`, error.message);
+
+    await PayrollBatch.updateOne(
+      { _id: batchId },
+      {
+        $inc:      { failedCount: employeeIds.length },
+        $addToSet: { failedEmployeeIds: { $each: employeeIds } },
+      }
+    ).catch(e => console.error("[Worker] Failed to update failedCount:", e.message));
+
+    return false;
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// generateMaterializedSummary — aggregates payslips → MonthlyDepartmentSummary
+// ─────────────────────────────────────────────────────────────────────────────
+const generateMaterializedSummary = async (orgId, month, year) => {
+  try {
+    const reportData = await Payslip.aggregate([
+      {
+        $match: {
+          orgId:             new mongoose.Types.ObjectId(orgId),
+          "payPeriod.month": month,
+          "payPeriod.year":  year,
+          //  Only include payslips that have a valid departmentId
+          departmentId:      { $ne: null },
+        },
+      },
+      {
+        $group: {
+          _id:           "$departmentId",
+          totalNetPay:   { $sum: "$netPay" },
+          totalGrossPay: {
+            $sum: {
+              $add: [
+                "$earnings.baseSalary",
+                "$earnings.bonus",
+                "$earnings.allowances",
+              ],
+            },
+          },
+          totalTaxes:    { $sum: "$deductions.tax" },
+          employeeCount: { $sum: 1 },
+        },
+      },
+    ]);
+
+    if (reportData.length === 0) return;
+
+    const bulkOps = reportData.map(dept => ({
+      updateOne: {
+        filter: {
+          orgId:        new mongoose.Types.ObjectId(orgId),
+          departmentId: dept._id,
+          month,
+          year,
+        },
+        update: {
+          $set: {
+            totalNetPay:   dept.totalNetPay,
+            totalGrossPay: dept.totalGrossPay,
+            totalTaxes:    dept.totalTaxes,
+            employeeCount: dept.employeeCount,
+          },
+        },
+        upsert: true,
+      },
+    }));
+
+    await MonthlyDepartmentSummary.bulkWrite(bulkOps, { ordered: false });
+
+  } catch (error) {
+    console.error("[Worker] Failed to generate materialized summary:", error.message);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// deleteMessage
 // ─────────────────────────────────────────────────────────────────────────────
 const deleteMessage = async (receiptHandle) => {
   try {
     await sqsClient.send(
-      new DeleteMessageCommand({
-        QueueUrl: QUEUE_URL,
-        ReceiptHandle: receiptHandle,
-      }),
+      new DeleteMessageCommand({ QueueUrl: QUEUE_URL, ReceiptHandle: receiptHandle })
     );
   } catch (err) {
-    // Non-fatal — SQS will re-deliver but idempotent bulkWrite handles it safely
     console.error("[Worker] Failed to delete SQS message:", err.message);
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// startWorker — long-poll loop
+// ─────────────────────────────────────────────────────────────────────────────
 export const startWorker = async () => {
   await connectDB();
+  console.log("[Worker] Payroll worker started — polling SQS...");
 
-  console.log("Listening for Payroll SQS messages...");
-  // infinite polling loop
-  // efficient way - use aws lambda functions instead of worker
   while (!isShuttingDown) {
     try {
       const response = await sqsClient.send(
         new ReceiveMessageCommand({
-          QueueUrl: QUEUE_URL,
-          MaxNumberOfMessages: 1, // Pull 1 chunk at a time                    
-        }),
+          QueueUrl:            QUEUE_URL,
+          MaxNumberOfMessages: 1,
+          WaitTimeSeconds:     20,
+          VisibilityTimeout:   120,
+        })
       );
 
       const messages = response?.Messages;
-      if (!messages || messages.length === 0) {
-        // No messages — loop again (WaitTimeSeconds already handled the pause)
-        continue;
-      }
+      if (!messages || messages.length === 0) continue;
 
       const message = messages[0];
-      console.log(`[Worker] 📨 Received message ${message.MessageId}`);
+      console.log(`[Worker]  Received message ${message.MessageId}`);
 
-      // ── Process the payload ────────────────────────────────────────────────
       const isSuccess = await processMessage(message.Body);
       await deleteMessage(message.ReceiptHandle);
-        if (isSuccess) {
+
+      if (isSuccess) {
         console.log(`[Worker]  Message ${message.MessageId} processed and deleted`);
       } else {
-        console.warn(`[Worker]   Message ${message.MessageId} failed gracefully and deleted (check failedEmployeeIds)`);
+        console.warn(`[Worker]   Message ${message.MessageId} failed gracefully and deleted`);
       }
 
     } catch (pollErr) {
       console.error("[Worker] SQS poll error:", pollErr.message);
-      // Back off before retrying to avoid hammering SQS on persistent errors
-      // (e.g. network blip, SQS throttle)
-      await new Promise((resolve) => setTimeout(resolve, 5_000));
+      await new Promise(resolve => setTimeout(resolve, 5_000));
     }
   }
 
-  // ── Clean shutdown ──────────────────────────────────────────────────────────
   console.log("[Worker] Shutting down cleanly...");
   await mongoose.disconnect();
   process.exit(0);
 };
 
-startWorker() ; 
+startWorker();

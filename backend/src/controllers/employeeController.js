@@ -147,3 +147,34 @@ export const deleteEmployee = async (req, res) => {
     return res.status(500).json({ message: "Failed to delete employee" });
   }
 };
+
+
+export const updateUserMonthlyVars = async (req, res) => {
+  try {
+
+    const allowedRoles = ["hr_manager", "super_admin"] ; 
+    const userRole = req.user.role ; 
+    if(!allowedRoles.includes(userRole)){
+      return res.status(404).json({message: 'Not authenticated'}); 
+    }
+    const { bonusThisMonth, unpaidLeaveDaysThisMonth } = req.body;
+
+    const user = await User.findOneAndUpdate(
+      // Scoped to the HR's org — prevents cross-tenant writes
+      { _id: req.params.id, orgId: req.user.orgId },
+      {
+        $set: {
+          'financial.bonusThisMonth':           bonusThisMonth           ?? 0,
+          'financial.unpaidLeaveDaysThisMonth': unpaidLeaveDaysThisMonth ?? 0,
+        },
+      },
+      { new: true }
+    );
+
+    if (!user) return res.status(404).json({ message: 'Employee not found.' });
+
+    res.status(200).json({ message: 'Monthly variables updated.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message ?? 'Failed to update.' });
+  }
+};

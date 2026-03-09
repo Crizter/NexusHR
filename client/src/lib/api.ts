@@ -30,6 +30,18 @@ export interface Organization {
   updatedAt: string;
 }
 
+// DEPARTMENT SALARY REPORTS INTERFACE 
+export interface DepartmentBurnRecord {
+  _id:          string;
+  departmentId: { _id: string; name: string } | string;
+  month:        number;
+  year:         number;
+  totalNetPay:  number;
+  totalGrossPay: number;
+  totalTaxes:   number;
+  employeeCount: number;
+}
+
 
 
 export interface OrgAttendanceStat {
@@ -64,7 +76,15 @@ export interface UpdateOrganizationPayload {
   };
 }
 
+export interface PayslipDownloadResponse { 
+  downloadUrl: string; 
+  message: string ; 
+}
 
+export interface PayslipProcessingResponse { 
+  status: 'processing' ; 
+  message : string, 
+}
 
 
 export interface User {
@@ -302,6 +322,18 @@ export const api = {
     }
   },
 
+  //── DEPARTMENT REPORT ───────────────────────────────────────────────────────────────
+   async getDepartmentBurn(year: number): Promise<DepartmentBurnRecord[]> {
+    try {
+      const response = await axiosInstance.get<DepartmentBurnRecord[]>(
+        `/reports/department-burn?year=${year}`
+      );
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
   // ── Org-wide attendance materialized view (AttendanceDashboard) ───────────
   async getOrgAttendance(year: number, month?: number): Promise<OrgAttendanceStat[]> {
     try {
@@ -501,6 +533,24 @@ export const api = {
     }
   },
 
+    async updateDepartmentPayrollSettings(
+    deptId: string,
+    data: {
+      defaultTaxPercentage?:       number;
+      healthInsuranceFlatRate?:    number;
+      unpaidLeaveDeductionPerDay?: number;
+    }
+  ): Promise<Department> {
+    try {
+      const res = await axiosInstance.patch<Department>(
+        `/departments/${deptId}/payroll-settings`,
+        data
+      );
+      return res.data;
+    } catch (error) { extractError(error); }
+  },
+
+
 
 
   
@@ -593,6 +643,47 @@ export const api = {
     }
   },
 
+    // ── Update monthly variables (bonus + unpaid leave) before SQS dispatch ───
+  async updateUserMonthlyVars(
+    userId: string,
+    data: { bonusThisMonth: number; unpaidLeaveDaysThisMonth: number }
+  ): Promise<{ message: string }> {
+    try {
+      const response = await axiosInstance.patch<{ message: string }>(
+        `/employees/${userId}/monthly-vars`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+    // GET /api/payslips/:id/download — returns a 60-second presigned S3 URL
+  async getPayslipDownloadUrl(
+    payslipId: string
+  ): Promise<PayslipDownloadResponse | PayslipProcessingResponse> {
+    try {
+      const response = await axiosInstance.get<PayslipDownloadResponse>(
+        `/payslips/${payslipId}/download`
+      );
+      return response.data;
+    } catch (error: unknown) {
+      // 202 comes back as a resolved response in axios (2xx) — but guard anyway
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error
+      ) {
+        const axiosError = error as { response?: { status?: number; data?: PayslipProcessingResponse } };
+        if (axiosError.response?.status === 202 && axiosError.response.data) {
+          return axiosError.response.data;
+        }
+      }
+      extractError(error);
+    }
+  },
+  
 
   async bulkLockPayslips(
     month: number,
