@@ -5,6 +5,121 @@ import type { Role } from './config';
 // TypeScript Interfaces 
 // ============================================================================
 
+export interface ZoomStatus {
+  isConnected: boolean;
+  isExpired:   boolean | null;
+  zoomUserId:  string | null;
+  expiresAt:   string | null;
+}
+
+
+
+export interface Candidate {
+  _id:   string;
+  orgId: string;
+  jobId: string;
+  email: string;
+  profile: {
+    firstName: string;
+    lastName:  string;
+  };
+  documents: {
+    resumeS3Key: string;
+  };
+  questionnaireAnswers: {
+    questionId:   string;
+    questionText: string;
+    answer:       string;
+  }[];
+  pipeline: {
+    currentStage: 'Screening' | 'Interview' | 'Offer' | 'Hired' | 'Rejected';
+    status:       'Active' | 'Rejected' | 'Withdrawn' | 'Hired';
+    matchScore?:  number;    // — used for sorting on the board
+  };
+  createdAt: string;
+}
+
+export interface CandidateSignupPayload {
+  orgId:     string;
+  jobId:     string;
+  firstName: string;
+  lastName:  string;
+  email:     string;
+  password:  string;
+}
+
+export interface CandidateAuthResponse {
+  success:   boolean;
+  message:   string;
+  token:     string;
+  candidate: {
+    id:        string;
+    email:     string;
+    firstName: string;
+    lastName:  string;
+  };
+}
+
+export interface CandidateLoginPayload {
+  email:    string;
+  password: string;
+}
+
+export interface CandidateLoginResponse {
+  success:   boolean;
+  token:     string;
+  candidate: {
+    id:           string;
+    email:        string;
+    firstName:    string;
+    lastName:     string;
+    currentStage: string;
+    status:       string;
+  };
+}
+
+export interface ApplicationAnswer {
+  questionId:   string;
+  questionText?: string;
+  answer:        string;
+}
+
+export interface SubmitApplicationPayload {
+  jobId:   string;
+  answers: ApplicationAnswer[];
+  resume:  File;                 // multipart/form-data
+}
+
+export interface SubmitApplicationResponse {
+  success:     boolean;
+  message:     string;
+  application: {
+    candidateId:  string;
+    jobId:        string;
+    resumeS3Key:  string;
+    currentStage: string;
+  };
+}
+
+export interface ScheduleInterviewPayload {
+  topic:     string;
+  startTime: string;   // ISO 8601
+  duration:  number;   // minutes
+}
+
+export interface ScheduleInterviewResponse {
+  success:     boolean;
+  candidateId: string;
+  meetingId:   number;
+  topic:       string;
+  startTime:   string;
+  duration:    number;
+  join_url:    string;   // send to candidate via email
+  start_url:   string;   // display to recruiter only
+  password:    string;
+}
+
+
 export interface Organization {
   _id: string;
   name: string;
@@ -185,6 +300,7 @@ export interface UpdatePasswordPayload {
 
 
 
+
 export interface AuthUser {
   id:    string;
   orgId: string;
@@ -264,6 +380,59 @@ export interface Payslip {
 export interface UpdatePayslipPayload {
   earnings?: Partial<Omit<PayslipEarnings, 'baseSalary'>>;  // baseSalary is protected
   deductions?: Partial<PayslipDeductions>;
+}
+
+export interface ScreeningQuestion{
+  _id: string; 
+  questionText: string;
+  answerType: 'text' | 'boolean' ; 
+  isRequired: boolean ; 
+}
+export interface SalaryRange{
+  min: number; 
+  max: number ; 
+  currency: string ; 
+}
+
+export interface JobOpening {
+  _id:                string;
+  title:              string;
+  department:         string;
+  location:           string;
+  description:        string;
+  status:             'Draft' | 'Published' | 'Closed';   // ADD — used by sidebar green dot
+  technologies:       {                                    // FIX — was string[]
+    name:          string;
+    yearsRequired: number;
+    weight:        number;
+  }[];
+  salaryRange:        SalaryRange;
+  screeningQuestions: ScreeningQuestion[];
+  createdAt:          string;
+}
+
+export interface Candidate {
+  _id:   string;
+  orgId: string;
+  jobId: string;
+  email: string;
+  profile: {
+    firstName: string;
+    lastName:  string;
+  };
+  documents: {
+    resumeS3Key: string;
+  };
+  questionnaireAnswers: {
+    questionId:   string;
+    questionText: string;
+    answer:       string;
+  }[];
+  pipeline: {
+    currentStage: 'Screening' | 'Interview' | 'Offer' | 'Hired' | 'Rejected';
+    status:       'Active' | 'Rejected' | 'Withdrawn';
+  };
+  createdAt: string;
 }
 
 
@@ -429,6 +598,29 @@ export const api = {
       return response.data;
     } catch (error) {
       extractError(error);
+    }
+  },
+
+    // ── Public ATS — no auth header required ──────────────────────────────────
+
+  /**
+   * GET /api/jobs/public/:orgId
+   * Public endpoint — called from CareersPortal without a JWT.
+   */
+  async getPublicJobs(orgId: string): Promise<JobOpening[]> {
+    try {
+      //  Uses fetch — NOT axiosInstance (which always attaches Authorization header)
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/jobs/public/${orgId}`
+      );
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message ?? `Request failed with status ${response.status}`);
+      }
+      const body: { success: boolean; data: JobOpening[] } = await response.json();
+      return body.data;
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : String(error));
     }
   },
 
@@ -708,6 +900,289 @@ export const api = {
       const response = await axiosInstance.patch<{ message: string; modifiedCount: number }>(
         '/payroll/bulk-pay',
         { month, year }
+      );
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+  // ── Zoom Integration ────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/zoom/auth  (protected)
+   * Returns the Zoom OAuth URL to redirect the browser to.
+   */
+  async getZoomAuthUrl(): Promise<{ success: boolean; url: string }> {
+    try {
+      const response = await axiosInstance.get<{ success: boolean; url: string }>(
+        '/zoom/auth'
+      );
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+  /**
+   * GET /api/zoom/status  (protected)
+   * Returns whether the current HR user has Zoom connected.
+   */
+  async getZoomStatus(): Promise<ZoomStatus> {
+    try {
+      const response = await axiosInstance.get<{ success: boolean } & ZoomStatus>(
+        '/zoom/status'
+      );
+      return {
+        isConnected: response.data.isConnected,
+        isExpired:   response.data.isExpired,
+        zoomUserId:  response.data.zoomUserId,
+        expiresAt:   response.data.expiresAt,
+      };
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+  /**
+   * DELETE /api/zoom/disconnect  (protected)
+   * Revokes the Zoom token and clears zoomAuth from the User document.
+   */
+  async disconnectZoom(): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await axiosInstance.delete<{ success: boolean; message: string }>(
+        '/zoom/disconnect'
+      );
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+  // ── ATS — Candidate (public — uses fetch, no JWT) ───────────────────────────
+
+  /**
+   * POST /api/candidates/signup  (public)
+   * Creates a candidate account before they submit their application.
+   */
+  async candidateSignup(
+    payload: CandidateSignupPayload
+  ): Promise<CandidateAuthResponse> {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/candidates/signup`,
+        {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(payload),
+        }
+      );
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message ?? `Request failed with status ${response.status}`);
+      }
+      return response.json();
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : String(error));
+    }
+  },
+  
+
+  /**
+   * POST /api/candidates/login  (public)
+   * Returns a candidate JWT token.
+   */
+  async candidateLogin(
+    payload: CandidateLoginPayload
+  ): Promise<CandidateLoginResponse> {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/candidates/login`,
+        {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(payload),
+        }
+      );
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message ?? `Request failed with status ${response.status}`);
+      }
+      return response.json();
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : String(error));
+    }
+  },
+
+  /**
+   * POST /api/candidates/apply  (protected by candidate JWT — NOT HR JWT)
+   * Uploads resume to S3 and submits screening answers.
+   * Uses multipart/form-data — do NOT set Content-Type manually.
+   */
+  async submitApplication(
+    candidateToken: string,
+    payload:        SubmitApplicationPayload
+  ): Promise<SubmitApplicationResponse> {
+    try {
+      const form = new FormData();
+      form.append('jobId',   payload.jobId);
+      form.append('answers', JSON.stringify(payload.answers));  // stringified JSON
+      form.append('resume',  payload.resume, payload.resume.name);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/candidates/apply`,
+        {
+          method:  'POST',
+          headers: {
+            //  NO Content-Type — browser sets it automatically with boundary for FormData
+            'Authorization': `Bearer ${candidateToken}`,
+          },
+          body: form,
+        }
+      );
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message ?? `Request failed with status ${response.status}`);
+      }
+      return response.json();
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : String(error));
+    }
+  },
+
+  // ── ATS — Candidate Management (protected — HR/Admin axiosInstance) ──────────
+
+  /**
+   * GET /api/candidates/job/:jobId  (protected — hr_manager / super_admin)
+   * Returns all candidates for a job opening, sorted by matchScore desc.
+   * Scoped to the recruiter's orgId on the backend — no cross-tenant leaks.
+   */
+  async getCandidatesByJob(jobId: string): Promise<{
+    candidates: Candidate[];
+    esRanked:   boolean;    
+  }> {
+    try {
+      const response = await axiosInstance.get<{
+        success:  boolean;
+        count:    number;
+        esRanked: boolean;
+        data:     Candidate[];
+      }>(`/candidates/job/${jobId}`);
+      return {
+        candidates: response.data.data,
+        esRanked:   response.data.esRanked,
+      };
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+  /**
+   * PUT /api/candidates/:id/stage  (protected — hr_manager / super_admin)
+   * Moves a candidate to a new pipeline stage.
+   * Called by the Kanban board onDragEnd handler.
+   */
+  async updateCandidateStage(
+    candidateId: string,
+    stage:       Candidate['pipeline']['currentStage']
+  ): Promise<Candidate> {
+    try {
+      const response = await axiosInstance.put<{
+        success:   boolean;
+        candidate: Candidate;
+      }>(`/candidates/${candidateId}/stage`, { stage });
+      return response.data.candidate;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+
+
+  
+
+  // ── ATS — Job Management (protected — HR/Admin axiosInstance) ───────────────
+
+  /**
+   * POST /api/jobs  (protected — hr_manager / super_admin)
+   * Creates a new job opening for the org.
+   */
+  async createJobOpening(
+    payload: Omit<JobOpening, '_id' | 'createdAt'>
+  ): Promise<{ success: boolean; job: JobOpening }> {
+    try {
+      const response = await axiosInstance.post<{ success: boolean; job: JobOpening }>(
+        '/jobs',
+        payload
+      );
+      return response.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+  /**
+   * GET /api/jobs  (protected — hr_manager / super_admin)
+   * Returns all job openings for the logged-in user's org.
+   */
+  async getJobOpenings(): Promise<JobOpening[]> {
+    try {
+      const response = await axiosInstance.get<{ success: boolean; data: JobOpening[] }>(
+        '/jobs'
+      );
+      return response.data.data;
+    } catch (error) {
+      extractError(error);
+    }
+  },
+
+  // /**
+  //  * PATCH /api/jobs/:id  (protected — hr_manager / super_admin)
+  //  * Updates an existing job opening (e.g. change status to Closed).
+  //  */
+  // async updateJobOpening(
+  //   jobId:   string,
+  //   payload: Partial<Omit<JobOpening, '_id' | 'createdAt'>>
+  // ): Promise<JobOpening> {
+  //   try {
+  //     const response = await axiosInstance.patch<{ success: boolean; job: JobOpening }>(
+  //       `/jobs/${jobId}`,
+  //       payload
+  //     );
+  //     return response.data.job;
+  //   } catch (error) {
+  //     extractError(error);
+  //   }
+  // },
+
+  // /**
+  //  * DELETE /api/jobs/:id  (protected — hr_manager / super_admin)
+  //  */
+  // async deleteJobOpening(jobId: string): Promise<boolean> {
+  //   try {
+  //     await axiosInstance.delete(`/jobs/${jobId}`);
+  //     return true;
+  //   } catch (error) {
+  //     extractError(error);
+  //   }
+  // },
+
+
+
+   // ── Interviews ─────────────────────────────────────────────────────────────
+
+  /**
+   * POST /api/interviews/candidate/:id/schedule  (protected — HR/Admin)
+   * Creates a Zoom meeting and moves the candidate to the Interview stage.
+   */
+  async scheduleInterview(
+    candidateId: string,
+    payload:     ScheduleInterviewPayload
+  ): Promise<ScheduleInterviewResponse> {
+    try {
+      const response = await axiosInstance.post<ScheduleInterviewResponse>(
+        `/interviews/candidate/${candidateId}/schedule`,
+        payload
       );
       return response.data;
     } catch (error) {

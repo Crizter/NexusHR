@@ -290,7 +290,7 @@ const processMessage = async (message) => {
         Key:                  s3Key,
         Body:                 pdfBuffer,
         ContentType:          "application/pdf",
-        ServerSideEncryption: "AES256",
+        ServerSideEncryption: "AES256", 
         Metadata: {
           payslipId: paySlipId,
           orgId,

@@ -15,6 +15,12 @@ import profileRoutes from './routes/profileRoutes.js';
 import payrollRoutes from './routes/payrollRoutes.js';  
 import paySlipRoutes from './routes/payslipRoutes.js';
 import organizationRoutes from './routes/organizationRoutes.js'  ;
+import candidateRoutes from './routes/candidateRoutes.js';
+import interviewRoutes from './routes/interviewRoutes.js'
+import zoomRoutes from './routes/zoomRoutes.js' ; 
+import jobRoutes from './routes/jobRoutes.js';
+
+// --- CRON JOB------------------------------------------
 import { attendanceJob } from './cron/attendanceJob.js';
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -51,6 +57,10 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/payroll', payrollRoutes); 
 app.use('/api/organization',organizationRoutes);
 app.use('/api/payslips',paySlipRoutes);
+app.use('/api/jobs',jobRoutes) ; 
+app.use('/api/zoom',zoomRoutes) ; 
+app.use('/api/interviews', interviewRoutes);
+app.use('/api/candidates',candidateRoutes);
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
     console.log('res',res) ; 
