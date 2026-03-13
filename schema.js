@@ -264,12 +264,26 @@ const candidateSchema = new Schema(
     orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true },
     jobId: { type: Schema.Types.ObjectId, ref: "JobOpening", required: true },
     
-    // 1. Personal Details
-    firstName: { type: String, required: true },
-    lastName: { type: String, required: true },
-    email: { type: String, required: true },
-    phone: { type: String },
-    location: { type: String },
+
+     email: {
+      type: String,
+      required: [true, "Email is required"],
+      trim: true,
+      lowercase: true,
+    },
+
+     passwordHash: {
+      type: String,
+      select: false, // Never returned in queries by default
+    },
+
+    profile:{
+      firstName: { type: String, trim: true },
+      lastName: { type: String, trim: true },
+      contactNumber: { type: String, trim: true },
+      location: {type:String}
+    },
+
     
     socialProfiles: {
       linkedIn: { type: String },
@@ -375,3 +389,6 @@ const jobOpeningSchema = new Schema(
   },
   { timestamps: true }
 );
+
+
+// http://localhost:5173/careers/aaaaaaaaaaaaaaaaaaaaa001

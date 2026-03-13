@@ -72,6 +72,12 @@ const userSchema = new mongoose.Schema(
     lastLogin: {
       type: Date,
     },
+    zoomAuth: {
+      accessToken: { type: String },
+      refreshToken: { type: String },
+      expiresAt: { type: Date },
+      zoomUserId: { type: String }
+    }
   },
   { timestamps: true },
 );

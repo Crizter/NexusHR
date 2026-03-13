@@ -9,7 +9,6 @@ import PayrollBatch             from "../models/Payrollbatch.models.js";
 import MonthlyDepartmentSummary from "../models/analytics/MonthlyDepartmentSummary.models.js";
 import { sqsClient }            from "../services/sqsService.js";
 import connectDB                from "../config/db.js";
-import { dispatchPdfGeneration } from "../services/pdfSqsService.js";  
 import "dotenv/config";
 
 const QUEUE_URL = process.env.SQS_PAYROLL_QUEUE_URL;
