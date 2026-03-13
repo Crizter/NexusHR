@@ -107,7 +107,7 @@ export function AttendanceDashboard({ selectedYear: propYear, onYearChange }: At
         const data = await api.getOrgAttendance(selectedYear);
         //  Guard — API might return null/undefined on empty result
         setAttendanceData(Array.isArray(data) ? data : []);
-      } catch (err) {
+      } catch (err) { 
         const msg = err instanceof Error ? err.message : 'Failed to load attendance data';
         console.error('[AttendanceDashboard] Fetch error:', msg);
         setError(msg);
