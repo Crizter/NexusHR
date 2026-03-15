@@ -18,6 +18,7 @@ import organizationRoutes from './routes/organizationRoutes.js'  ;
 import candidateRoutes from './routes/candidateRoutes.js';
 import interviewRoutes from './routes/interviewRoutes.js'
 import zoomRoutes from './routes/zoomRoutes.js' ; 
+import superAdminRoutes from './routes/superAdminRoutes.js'
 import jobRoutes from './routes/jobRoutes.js';
 
 // --- CRON JOB------------------------------------------
@@ -60,6 +61,7 @@ app.use('/api/payslips',paySlipRoutes);
 app.use('/api/jobs',jobRoutes) ; 
 app.use('/api/zoom',zoomRoutes) ; 
 app.use('/api/interviews', interviewRoutes);
+app.use('/api/super-admin',superAdminRoutes);
 app.use('/api/candidates',candidateRoutes);
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {

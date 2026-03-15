@@ -31,8 +31,10 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Clear stale session and redirect to login
+    const isLoginRequest = error.config?.url?.includes('/auth/login');
+
+    if (error.response?.status === 401 && !isLoginRequest) {
+      // Stale/expired token on a protected request → clear session and redirect
       sessionStorage.removeItem('nexus_user');
       window.location.href = '/login';
     }

@@ -1189,6 +1189,34 @@ export const api = {
       extractError(error);
     }
   },
+  // ── Super Admin ──────────────────────────────────────────────────────────────
+
+async onboardTenant(payload: {
+  orgName:   string;
+  firstName: string;
+  lastName:  string;
+  email:     string;
+}): Promise<{ success: boolean; orgId: string; userId: string }> {
+  const token = localStorage.getItem('adminToken');
+  const res   = await fetch(`${import.meta.env.VITE_API_URL}/super-admin/onboard-tenant`, {
+    method:  'POST',
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message ?? 'Onboarding failed.');
+  return data;
+},
+
+
+
+
+
+
 
 
 
