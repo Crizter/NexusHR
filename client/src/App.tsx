@@ -19,10 +19,15 @@ import { WelcomePage } from "@/pages/WelcomePage";
 import { MyPayslips } from "@/pages/MyPayslips";
 import { AllPayslips } from "@/pages/AllPayslips";
 import { MyProfile } from "@/pages/MyProfile";
-import {CareersPortal} from '@/pages/CareersPortal';
-import { JobApplicationForm } from "@/pages/JobApplicationForm";   
+import { CareersPortal } from "@/pages/CareersPortal";
+import { JobApplicationForm } from "@/pages/JobApplicationForm";
 import { JobBoard } from "@/pages/JobBoard";
 import { CreateJob } from "@/pages/CreateJob";
+import { SuperAdminDashboard } from "@/pages/SuperAdminDashboard";
+import { SuperAdminLogin } from "@/pages/SuperAdminLogin";
+import { ProtectedSuperAdminRoute } from "@/components/ProtectedSuperAdminRoute";
+import { SuperAdminLayout } from "@/components/layouts/SuperAdminLayout";
+import { TenantDirectory } from "@/pages/TenantDirectory";
 import { Toaster } from "./components/ui/sonner";
 import "./index.css";
 
@@ -31,6 +36,32 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
+          {/* SUPER ADMIN */}
+          {/* Public Super Admin login — BEFORE the catch-all */}
+          <Route path="/super-admin/login" element={<SuperAdminLogin />} />
+
+          <Route
+            path="/super-admin"
+            element={
+              <ProtectedSuperAdminRoute>
+                <SuperAdminLayout>
+                  <SuperAdminDashboard />
+                </SuperAdminLayout>
+              </ProtectedSuperAdminRoute>
+            }
+          />
+
+          <Route
+            path="/super-admin/tenants"
+            element={
+              <ProtectedSuperAdminRoute>
+                <SuperAdminLayout>
+                  <TenantDirectory />
+                </SuperAdminLayout>
+              </ProtectedSuperAdminRoute>
+            }
+          />
+
           {/* Public routes */}
           <Route path="/" element={<WelcomePage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -152,7 +183,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-           <Route
+          <Route
             path="/recruitment/job/:jobId"
             element={
               <ProtectedRoute>
@@ -163,8 +194,7 @@ function App() {
             }
           />
 
-
-           <Route
+          <Route
             path="/recruitment/create"
             element={
               <ProtectedRoute>
@@ -174,7 +204,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-          
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

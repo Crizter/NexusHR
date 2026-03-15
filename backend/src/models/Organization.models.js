@@ -34,6 +34,10 @@ const organizationSchema = new mongoose.Schema(
         casualLeaves: { type: Number, default: 12 },
         sickLeaves:   { type: Number, default: 10 },
       },
+      isActive: { 
+        type: Boolean,
+        default: true,
+      },
       timezone: {
         type:    String,
         default: 'UTC',

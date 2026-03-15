@@ -21,7 +21,7 @@ export const PERMISSIONS = {
   SETTINGS_VIEW:      'settings_view',
 } as const;
 
-export const ROLEgi_PERMISSIONS = {
+export const ROLE_PERMISSIONS = {
   [ROLES.super_admin]: Object.values(PERMISSIONS),
 
   [ROLES.hr_manager]: [

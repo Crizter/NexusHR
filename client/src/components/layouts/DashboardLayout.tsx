@@ -22,7 +22,7 @@ import {
   Settings, LogOut, Building, ChevronUp, User,
   UserRoundPen, Receipt, CircleDollarSign,
   FolderKanban, Plus, ChevronRight, Loader2,
-  Briefcase,
+  Briefcase, ShieldCheck
 } from 'lucide-react';
 import type { Permission } from '@/lib/config';
 
@@ -49,6 +49,7 @@ const NAV_MAIN: NavItem[] = [
 
 const NAV_ADMIN: NavItem[] = [
   { href: '/settings', label: 'Settings', icon: Settings, permission: 'settings_view' },
+  { href: '/super-admin',  label: 'Tenant Provisioning', icon: ShieldCheck, permission: 'admin_view'   },
 ];
 
 // ─── Recruitment sub-menu ─────────────────────────────────────────────────────
