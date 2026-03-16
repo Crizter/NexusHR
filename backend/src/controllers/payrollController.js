@@ -97,10 +97,10 @@ export const getPayrollBatchStatus = async(req,res) => {
 // ─── GET /api/payroll ─────────────────────────────────────────────────────────
 export const getPayslips = async (req, res) => {
   try {
-    const { month, year } = req.query;
+    const { departmentId, month, year } = req.query;
 
     if (!month || !year) {
-      return res.status(400).json({ message: 'month and year query params are required' });
+      return res.status(400).json({ message: 'month and year are required' });
     }
 
     const query = {
@@ -109,14 +109,20 @@ export const getPayslips = async (req, res) => {
       'payPeriod.year':  parseInt(year),
     };
 
-    // ── Employees can only see their own payslips ──────────────────────────
+    // Optional — AllPayslips passes this to bound the dataset per department
+    if (departmentId) {
+      query.departmentId = departmentId;
+    }
+
+    // Employees can only see their own payslips
     if (req.user.role === 'employee') {
       query.employeeId = req.user.id;
     }
 
     const payslips = await Payslip.find(query)
       .populate('employeeId', 'profile.firstName profile.lastName email displayId')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     return res.status(200).json(payslips);
 
@@ -169,6 +175,34 @@ export const updatePayslip = async (req, res) => {
   } catch (err) {
     console.error('updatePayslip error:', err.message, err.stack);
     return res.status(500).json({ message: 'Failed to update payslip' });
+  }
+};
+
+/**
+ * GET /api/payroll/my?year=2026
+ * Always returns only the authenticated user's own payslips for the full year.
+ * Works for every role — fixes href_manager seeing all org payslips in My Profile.
+ */
+export const getMyPayslips = async (req, res) => {
+  try {
+    const { year } = req.query;
+    if (!year) {
+      return res.status(400).json({ message: 'year query param is required' });
+    }
+
+    const payslips = await Payslip.find({
+      orgId:            req.user.orgId,
+      employeeId:       req.user.id,       // always self-scoped regardless of role
+      'payPeriod.year': parseInt(year),
+      status:           'paid',            // employees only care about paid slips
+    })
+      .sort({ 'payPeriod.month': -1 })
+      .lean();
+
+    return res.status(200).json(payslips);
+  } catch (err) {
+    console.error('getMyPayslips error:', err.message);
+    return res.status(500).json({ message: 'Failed to fetch payslips' });
   }
 };
 

@@ -1,25 +1,22 @@
 import 'dotenv/config';
-
 import mongoose from 'mongoose';
-import connectDB from './config/db.js';
-import bcrypt from 'bcryptjs' ; 
-
-// ─── Models ───────────────────────────────────────────────────────────────────
-import Organization from './models/Organization.models.js';
-import User         from './models/User.models.js';
-import Department   from './models/Department.models.js';
-import LeaveRequest from './models/LeaveRequest.models.js';
-import Counter      from './models/Counter.models.js';
-
+import connectDB    from '../config/db.js';              // ← ../  not ./
+import bcrypt       from 'bcryptjs';
+import Organization from '../models/Organization.models.js'; // ← ../
+import User         from '../models/User.models.js';        // ← ../
+import Department   from '../models/Department.models.js';   // ← ../
+import LeaveRequest from '../models/LeaveRequest.models.js'; // ← ../
+import Counter      from '../models/Counter.models.js';      // ← ../
 // ============================================================================
 // Seed Data (mirrored from mockApi.ts)
 // ============================================================================
 
 const organizations = [
   {
-    _id:  new mongoose.Types.ObjectId('aaaaaaaaaaaaaaaaaaaaa001'), // stable ID so refs work
+    _id:  new mongoose.Types.ObjectId('aaaaaaaaaaaaaaaaaaaaa001'),
     name: 'Nexus Tech',
     slug: 'nexus-tech',
+    isActive: true,                  
     subscription: {
       plan:     'pro',
       status:   'active',
@@ -27,10 +24,14 @@ const organizations = [
     },
     settings: {
       leavePolicy: {
-        casualLeaves: 12,
-        sickLeaves:   10,
+        casualLeaves: 16,
+        sickLeaves:   12,
       },
       timezone: 'UTC',
+      payroll: {                     
+        currency: 'USD',
+        payCycle: 'monthly',
+      },
     },
   },
 ];

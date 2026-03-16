@@ -18,6 +18,8 @@ export const login = async (req, res) => {
       .select('+passwordHash')
       .lean(false); // need a Mongoose doc so we can call .save()
     // ── User existence & soft-delete check ────────────────────────────────
+    console.log('email,pass',email,password);
+    console.log(user);
     if (!user || user.isDeleted) {
       return res.status(401).json({
         message: 'Invalid email or password',

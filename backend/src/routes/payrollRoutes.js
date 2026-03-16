@@ -1,17 +1,18 @@
-import express  from 'express';
-import passport from 'passport';
+import express from "express";
+import passport from "passport";
 import {
   bulkLockPayslips,
   bulkPayPayslips,
   generatePayrollDispatcher,
   getPayslips,
   updatePayslip,
-  updatePayslipStatus,  
+  updatePayslipStatus,
+  getMyPayslips,
   getPayrollBatchStatus,
-} from '../controllers/payrollController.js';
+} from "../controllers/payrollController.js";
 
-const router  = express.Router();
-const protect = passport.authenticate('jwt', { session: false });
+const router = express.Router();
+const protect = passport.authenticate("jwt", { session: false });
 
 // All payroll routes require authentication
 router.use(protect);
@@ -20,12 +21,12 @@ router.use(protect);
 // GET    /api/payroll             — list payslips (filtered by role)
 // PATCH  /api/payroll/:id         — edit earnings/deductions (HR/Admin, draft only)
 // PATCH  /api/payroll/:id/status  — advance status (HR/Admin)
-router.patch('/bulk-lock', bulkLockPayslips);
-router.patch('/bulk-pay', bulkPayPayslips) ; 
-router.post('/generate',generatePayrollDispatcher);
-router.get('/status/:batchId',getPayrollBatchStatus);
-router.get   ('/',              getPayslips);
-router.patch ('/:id/status',    updatePayslipStatus);   // ← must be before /:id
-router.patch ('/:id',           updatePayslip);
-
+router.patch("/bulk-lock", bulkLockPayslips);
+router.patch("/bulk-pay", bulkPayPayslips);
+router.post("/generate", generatePayrollDispatcher);
+router.get("/status/:batchId", getPayrollBatchStatus);
+router.get("/my", getMyPayslips);
+router.get("/", getPayslips);
+router.patch("/:id/status", updatePayslipStatus); // ← must be before /:id
+router.patch("/:id", updatePayslip);
 export default router;

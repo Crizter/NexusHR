@@ -800,16 +800,29 @@ export const api = {
     }
   },
 
-  async getPayslips(month: number, year: number): Promise<Payslip[]> {
-    try {
-      const response = await axiosInstance.get<Payslip[]>(
-        `/payroll?month=${month}&year=${year}`
-      );
-      return response.data;
-    } catch (error) {
-      extractError(error);
-    }
-  },
+async getPayslips(month: number, year: number, departmentId?: string): Promise<Payslip[]> {
+  try {
+    const q = new URLSearchParams({ month: String(month), year: String(year) });
+    if (departmentId) q.set('departmentId', departmentId);
+    const response = await axiosInstance.get<Payslip[]>(`/payroll?${q.toString()}`);
+    return response.data;
+  } catch (error) {
+    extractError(error);
+  }
+},
+
+
+  async getMyPayslips(year: number): Promise<Payslip[]> {
+  try {
+    const response = await axiosInstance.get<Payslip[]>(
+      `/payroll/my?year=${year}`
+    );
+    return response.data;
+  } catch (error) {
+    extractError(error);
+  }
+},
+
 
   async updatePayslip(id: string, updates: UpdatePayslipPayload): Promise<Payslip> {
     try {

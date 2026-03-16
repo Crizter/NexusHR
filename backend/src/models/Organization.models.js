@@ -26,18 +26,19 @@ const organizationSchema = new mongoose.Schema(
       },
       maxUsers: {
         type:    Number,
-        default: 10,
+      default: 10,
       },
     },
+    isActive: { 
+        type: Boolean,
+        default: true,
+      },
     settings: {
       leavePolicy: {
         casualLeaves: { type: Number, default: 12 },
         sickLeaves:   { type: Number, default: 10 },
       },
-      isActive: { 
-        type: Boolean,
-        default: true,
-      },
+      
       timezone: {
         type:    String,
         default: 'UTC',

@@ -28,7 +28,7 @@ export const protectCandidate = async (req, res, next) => {
       return res.status(401).json({ message });
     }
 
-    // ✅ Reject tokens that belong to HR Users — type field set in signToken()
+    //  Reject tokens that belong to HR Users — type field set in signToken()
     if (payload.type !== "candidate") {
       return res.status(403).json({ message: "Access denied." });
     }

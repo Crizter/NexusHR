@@ -39,7 +39,6 @@ interface NavItem {
 const NAV_MAIN: NavItem[] = [
   { href: '/dashboard',  label: 'Dashboard',         icon: LayoutDashboard                          },
   { href: '/profile',    label: 'My Profile',         icon: UserRoundPen                             },
-  { href: '/my-payslips',label: 'My Payslips',        icon: Receipt                                  },
   { href: '/payslips',   label: 'Employee Payslips',  icon: Receipt,          permission: 'view_record'    },
   { href: '/employees',  label: 'Employees',          icon: Users,            permission: 'view_record'    },
   { href: '/leaves',     label: 'Leaves',             icon: Calendar,         permission: 'apply_leave'    },
