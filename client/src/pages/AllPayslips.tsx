@@ -121,7 +121,7 @@ export function AllPayslips() {
     const load = async () => {
       try {
         setIsLoading(true);
-        const data = await api.getPayslips(selectedDeptId, selectedMonth, selectedYear);
+        const data = await api.getPayslips(selectedMonth, selectedYear, selectedDeptId);
         if (!cancelled) setPayslips(data ?? []);
       } catch (err) {
         console.error('AllPayslips load error:', err);

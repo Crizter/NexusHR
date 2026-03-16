@@ -99,16 +99,20 @@ export const getPayslips = async (req, res) => {
   try {
     const { departmentId, month, year } = req.query;
 
-    if (!departmentId || !month || !year) {
-      return res.status(400).json({ message: 'departmentId, month, and year are required' });
+    if (!month || !year) {
+      return res.status(400).json({ message: 'month and year are required' });
     }
 
     const query = {
       orgId:             req.user.orgId,
-      departmentId,
       'payPeriod.month': parseInt(month),
       'payPeriod.year':  parseInt(year),
     };
+
+    // Optional — AllPayslips passes this to bound the dataset per department
+    if (departmentId) {
+      query.departmentId = departmentId;
+    }
 
     // Employees can only see their own payslips
     if (req.user.role === 'employee') {

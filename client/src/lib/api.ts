@@ -800,11 +800,11 @@ export const api = {
     }
   },
 
-async getPayslips(departmentId: string, month: number, year: number): Promise<Payslip[]> {
+async getPayslips(month: number, year: number, departmentId?: string): Promise<Payslip[]> {
   try {
-    const response = await axiosInstance.get<Payslip[]>(
-      `/payroll?departmentId=${departmentId}&month=${month}&year=${year}`
-    );
+    const q = new URLSearchParams({ month: String(month), year: String(year) });
+    if (departmentId) q.set('departmentId', departmentId);
+    const response = await axiosInstance.get<Payslip[]>(`/payroll?${q.toString()}`);
     return response.data;
   } catch (error) {
     extractError(error);
