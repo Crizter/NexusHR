@@ -174,16 +174,6 @@ function App() {
           />
 
           <Route
-            path="/my-payslips"
-            element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <MyPayslips />
-                </DashboardLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/recruitment/job/:jobId"
             element={
               <ProtectedRoute>
