@@ -3,6 +3,7 @@ import { protect } from '../middleware/authMiddleware.js';
 import {
   getEmployees,
   getEmployeeById,
+  getEmployeeDirectory,
   addEmployee,
   deleteEmployee,
   updateUserMonthlyVars,
@@ -11,6 +12,7 @@ import {
 const router = express.Router();
 router.use(protect);
 
+router.get('/directory',getEmployeeDirectory);
 router.route('/')
   .get(getEmployees)
   .post(addEmployee);

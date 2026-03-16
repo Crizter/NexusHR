@@ -535,6 +535,31 @@ export const api = {
     }
   },
 
+  async getEmployeeDirectory(params?: {
+  cursor?:       string | null;
+  search?:       string;
+  departmentId?: string;
+  limit?:        number;
+}): Promise<{ data: User[]; nextCursor: string | null; hasNextPage: boolean }> {
+  try {
+    const q = new URLSearchParams();
+    if (params?.cursor)       q.set('cursor',       params.cursor);
+    if (params?.search)       q.set('search',       params.search);
+    if (params?.departmentId) q.set('departmentId', params.departmentId);
+    if (params?.limit)        q.set('limit',        String(params.limit));
+
+    const response = await axiosInstance.get<{
+      data:        User[];
+      nextCursor:  string | null;
+      hasNextPage: boolean;
+    }>(`/employees/directory?${q.toString()}`);
+    return response.data;
+  } catch (error) {
+    extractError(error);
+  }
+},
+
+
   /**
    * GET /employees/:id
    */
