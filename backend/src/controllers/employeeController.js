@@ -178,3 +178,60 @@ export const updateUserMonthlyVars = async (req, res) => {
     res.status(500).json({ message: err.message ?? 'Failed to update.' });
   }
 };
+
+
+// ─── GET /api/employees/directory ────────────────────────────────────────────
+export const getEmployeeDirectory = async (req, res) => {
+  try {
+    const { cursor, search, departmentId } = req.query;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+
+    // ── Base query — always scoped to org + active only ───────────────────
+    const query = {
+      orgId:     req.user.orgId,
+      isDeleted: false,
+    };
+
+    // ── Optional department filter ────────────────────────────────────────
+    if (departmentId) {
+      query.departmentId = departmentId;
+    }
+
+    // ── Optional search — prefix regex per field ──────────────────────────
+    // Anchored ^ regex uses the individual field indexes more efficiently
+    // than a full substring scan
+  if (search?.trim()) {
+      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // The ^ forces MongoDB to check the start of the string, unlocking index usage!
+      const regex   = new RegExp('^' + escaped, 'i'); 
+      query.$or = [
+        { 'profile.firstName': regex },
+        { 'profile.lastName':  regex },
+        { email:               regex },
+        { displayId:           regex },
+      ];
+    }
+
+    // ── Cursor — newest first (_id: -1) ───────────────────────────────────
+    if (cursor) {
+      query._id = { $lt: cursor };
+    }
+
+    const employees = await User.find(query)
+      .select('displayId email role departmentId profile.firstName profile.lastName profile.avatarUrl profile.contactNumber')
+      .populate('departmentId', 'name')
+      .sort({ _id: -1 })
+      .limit(limit + 1)
+      .lean();
+
+    const hasNextPage = employees.length > limit;
+    const data        = hasNextPage ? employees.slice(0, limit) : employees;
+    const nextCursor  = hasNextPage ? String(data[data.length - 1]._id) : null;
+
+    return res.status(200).json({ data, nextCursor, hasNextPage });
+
+  } catch (err) {
+    console.error('getEmployeeDirectory error:', err.message);
+    return res.status(500).json({ message: 'Failed to fetch employee directory' });
+  }
+};
